@@ -7,8 +7,14 @@ import { calculateCrs, getCrsVersion, primeCrsParams, getCrsLastSynced, loadCRSS
 import { calculateFsw67, getFswVersion, primeFswParams, getFswLastSynced } from "../services/fsw67";
 import RulesBadge from "../components/RulesBadge";
 import { Picker } from "@react-native-picker/picker";
+import { useNavigation } from "@react-navigation/native";
 
-export default function ScoreScreen({ navigation }: any) {
+type Props = { navigation?: any };
+
+export default function ScoreScreen({ navigation: navProp }: Props) {
+  const navigation = navProp ?? useNavigation();
+
+
   // Shared inputs
   const [age, setAge] = useState("29");
   const [clb, setClb] = useState("9");
