@@ -14,6 +14,18 @@ type Props = { navigation?: any };
 export default function ScoreScreen({ navigation: navProp }: Props) {
   const navigation = navProp ?? useNavigation();
 
+useEffect(() => {
+  const unsubFocus = navigation?.addListener?.("focus", () => {
+    // optionally trigger a recompute/refresh here
+    // runRecalc?.();
+  });
+  const unsubBlur = navigation?.addListener?.("blur", () => {});
+
+  return () => {
+    try { unsubFocus && unsubFocus(); } catch {}
+    try { unsubBlur && unsubBlur(); } catch {}
+  };
+}, [navigation]);
 
   // Shared inputs
   const [age, setAge] = useState("29");
