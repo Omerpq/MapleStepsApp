@@ -8,6 +8,10 @@ import { calculateFsw67, getFswVersion, primeFswParams, getFswLastSynced } from 
 import RulesBadge from "../components/RulesBadge";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
+import { FSW_EDUCATION_OPTIONS, type FswEducationValue } from "../constants/education";
+
+type FswEducationKey = Parameters<typeof calculateFsw67>[0]["education"];
+
 
 type Props = { navigation?: any };
 
@@ -30,8 +34,8 @@ useEffect(() => {
   // Shared inputs
   const [age, setAge] = useState("29");
   const [clb, setClb] = useState("9");
-  const [education, setEducation] =
-  useState<"secondary" | "one_year_postsecondary" | "bachelor" | "two_or_more" | "masters" | "phd">("bachelor");
+  const [education, setEducation] = useState<FswEducationKey>("bachelor");
+
 
   const [fswSynced, setFswSynced] = useState<string>("local");
 
@@ -158,12 +162,16 @@ education,
       testID="sc-education"
 
     >
-      <Picker.Item label="Secondary (High school)" value="secondary" />
-      <Picker.Item label="One-year postsecondary diploma" value="one_year_postsecondary" />
-      <Picker.Item label="Bachelor’s degree" value="bachelor" />
-      <Picker.Item label="Two or more credentials (incl. one 3+ years)" value="two_or_more" />
-      <Picker.Item label="Master’s degree" value="masters" />
-      <Picker.Item label="PhD / Doctorate" value="phd" />
+      <Picker<FswEducationKey>
+  selectedValue={education}
+  onValueChange={(v: FswEducationKey) => setEducation(v)}
+  testID="sc-education"
+>
+  {FSW_EDUCATION_OPTIONS.map(o => (
+    <Picker.Item key={o.value} label={o.label} value={o.value} />
+  ))}
+</Picker>
+
     </Picker>
   </View>
 </View>
