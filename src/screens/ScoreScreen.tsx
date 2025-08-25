@@ -165,7 +165,7 @@ education,
       <Picker<FswEducationKey>
   selectedValue={education}
   onValueChange={(v: FswEducationKey) => setEducation(v)}
-  testID="sc-education"
+  testID="sc-education-2"
 >
   {FSW_EDUCATION_OPTIONS.map(o => (
     <Picker.Item key={o.value} label={o.label} value={o.value} />
