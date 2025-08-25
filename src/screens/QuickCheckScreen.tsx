@@ -3,19 +3,24 @@ import { View, Text, TextInput, StyleSheet, Switch } from "react-native";
 import PrimaryButton from "../components/PrimaryButton";
 import { colors } from "../theme/colors";
 import { calculateFsw67, primeFswParams, getFswVersion, getFswLastSynced } from "../services/fsw67";
+type FswEducationKey = Parameters<typeof calculateFsw67>[0]["education"];
+
 import RulesBadge from "../components/RulesBadge"; // (add with other imports)
 
 import { clearAllRulesCaches } from "../services/rules";
 import { primeCrsParams } from "../services/crs";
 import { Picker } from "@react-native-picker/picker";
+import { FSW_EDUCATION_OPTIONS, type FswEducationValue } from "../constants/education";
+
 
 
 export default function QuickCheckScreen() {
   const [age, setAge] = useState("29");
   const [clb, setClb] = useState("9");
   const [years, setYears] = useState("3");
-  const [education, setEducation] =
-  useState<"secondary" | "one_year_postsecondary" | "bachelor" | "two_or_more" | "masters" | "phd">("bachelor");
+  const [education, setEducation] = useState<FswEducationKey>("bachelor");
+
+
 
 
   const [arranged, setArranged] = useState(false);
@@ -71,20 +76,20 @@ export default function QuickCheckScreen() {
       <View style={styles.row}>
   <Text style={styles.label}>Education</Text>
   <View style={{ flex: 1, borderWidth: 1, borderColor: "#ddd", borderRadius: 6 }}>
-    <Picker
+    <Picker<FswEducationKey>
   selectedValue={education}
-  onValueChange={(v) => setEducation(v as any)}
+  onValueChange={(v: FswEducationKey) => setEducation(v)}
   testID="qc-education"
 >
 
-      <Picker.Item label="Secondary (High school)" value="secondary" />
-<Picker.Item label="One-year postsecondary diploma" value="one_year_postsecondary" />
-<Picker.Item label="Bachelor’s degree" value="bachelor" />
-<Picker.Item label="Two or more credentials (incl. one 3+ years)" value="two_or_more" />
-<Picker.Item label="Master’s degree" value="masters" />
-<Picker.Item label="PhD / Doctorate" value="phd" />
 
-    </Picker>
+
+
+      {FSW_EDUCATION_OPTIONS.map(o => (
+  <Picker.Item key={o.value} label={o.label} value={o.value} />
+))}
+</Picker>
+
   </View>
 </View>
 
