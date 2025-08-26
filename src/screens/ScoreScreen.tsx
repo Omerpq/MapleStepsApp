@@ -1,4 +1,6 @@
-﻿import React, { useEffect, useState } from "react";
+﻿// src/screens/ScoreScreen.tsx
+
+import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, StyleSheet, Switch, Pressable } from "react-native";
 import PrimaryButton from "../components/PrimaryButton";
 import { colors } from "../theme/colors";
@@ -12,6 +14,67 @@ import { FSW_EDUCATION_OPTIONS, type FswEducationValue } from "../constants/educ
 
 type FswEducationKey = Parameters<typeof calculateFsw67>[0]["education"];
 
+// ------- FSW warnings (non-blocking, accessible) -------
+type FswWarningsProps = {
+  showEca: boolean;
+  showPof: boolean;
+};
+
+const FswWarnings: React.FC<FswWarningsProps> = ({ showEca, showPof }) => {
+  if (!showEca && !showPof) return null;
+
+
+
+  return (
+    <View
+      style={warnStyles.wrap}
+      accessible
+      accessibilityRole="summary"
+      accessibilityLabel="Important notes for Federal Skilled Worker eligibility"
+    >
+      <Text style={warnStyles.title}>Heads-up</Text>
+
+      {showEca && (
+        <View
+          style={warnStyles.card}
+          accessibilityRole="text"
+          accessibilityLiveRegion="polite"
+          testID="fsw-warning-eca"
+        >
+          <Text style={warnStyles.text}>ECA required for foreign education.</Text>
+        </View>
+      )}
+
+      {showPof && (
+        <View
+          style={warnStyles.card}
+          accessibilityRole="text"
+          accessibilityLiveRegion="polite"
+          testID="fsw-warning-pof"
+        >
+          <Text style={warnStyles.text}>
+            Proof of funds required unless you have a valid job offer.
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const warnStyles = StyleSheet.create({
+  wrap: { marginTop: 8, marginBottom: 8, gap: 8 },
+  title: { fontWeight: "600", fontSize: 14, color: colors.text },
+  card: {
+    backgroundColor: "#FFF7E6",     // soft amber
+    borderLeftWidth: 4,
+    borderLeftColor: "#F59E0B",     // amber-500
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  text: { fontSize: 13, color: colors.text },
+});
+// ------- end FSW warnings -------
 
 type Props = { navigation?: any };
 
@@ -71,6 +134,22 @@ useEffect(() => {
   useEffect(() => {
     if (fswArranged) setAdArranged(true);
   }, [fswArranged]);
+
+  // B7 — contextual warnings (derived)
+  // Show ECA warning only if user is claiming any (secondary or higher) education AND it's likely foreign
+  const educationRequiresEca = [
+    "secondary",
+    "diploma-1yr",
+    "diploma-2yr",
+    "twoOrMore",
+    "bachelor",
+    "master",
+    "phd",
+  ].includes(String(education));
+
+  const showEcaWarning = educationRequiresEca && !adCanadianStudy; // likely foreign if no Canadian study toggle
+  const showPofWarning = !fswArranged;                              // PoF needed unless there’s a valid job offer
+
 
   // FSW-67 output
   const [fswResult, setFswResult] = useState<null | {
@@ -180,8 +259,12 @@ education,
 
          {/* FSW-67 (demo) */}
       <Text style={styles.h2}>FSW-67 — Eligibility Check</Text>
-      <Text style={styles.subtleLine}>Uses Age, CLB, Education from above (FSW only)</Text>
-      <View style={{ height: 8 }} />
+<Text style={styles.subtleLine}>Uses Age, CLB, Education from above (FSW only)</Text>
+<View style={{ height: 8 }} />
+
+{/* B7 — contextual warnings */}
+<FswWarnings showEca={showEcaWarning} showPof={showPofWarning} />
+
 
       <View style={styles.row}>
   <Text style={styles.label}>Skilled experience years</Text>
