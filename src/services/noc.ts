@@ -53,9 +53,10 @@ const normNoc = (json: any): NocItem[] => {
     .map((x: any) => ({
       code: String(x?.code ?? ""),
       title: String(x?.title ?? ""),
-      major_group: x?.major_group ? String(x.major_group) : undefined
+      major_group: x?.major_group ? String(x.major_group) : undefined,
     }))
-    .filter(x => x.code && x.title);
+    // type the filter param so TS doesn’t squiggle
+    .filter((x: NocItem) => x.code && x.title);
 };
 
 const normCats = (json: any): NocCategory[] => {
@@ -63,11 +64,18 @@ const normCats = (json: any): NocCategory[] => {
   return arr
     .map((c: any) => ({
       key: String(c?.key ?? ""),
-      label: String(c?.label ?? c?.key ?? ""),
-      noc_codes: Array.isArray(c?.noc_codes) ? c.noc_codes.map((s: any) => String(s)) : []
+      label: String(c?.label ?? c?.title ?? c?.name ?? c?.key ?? ""),
+      // accept either "codes" (your JSON) or "noc_codes" (alt shape)
+      noc_codes: Array.isArray(c?.noc_codes)
+        ? c.noc_codes.map((s: any) => String(s))
+        : Array.isArray(c?.codes)
+        ? c.codes.map((s: any) => String(s))
+        : [],
     }))
-    .filter(c => c.key);
+    // type the filter param so TS doesn’t squiggle
+    .filter((c: NocCategory) => Boolean(c.key));
 };
+
 
 // ---------- Loaders (A4 contract) ----------
 export async function loadNoc(): Promise<LoaderResult<NocItem[]>> {
@@ -126,7 +134,36 @@ export async function loadNocCategories(): Promise<LoaderResult<NocCategory[]>> 
 export function makeNocIndex(items: NocItem[]): Record<string, NocItem> {
   return Object.fromEntries(items.map(i => [i.code, i]));
 }
-export function codesForCategory(key: string, cats: NocCategory[]): string[] {
-  const k = String(key).toLowerCase();
-  return cats.find(c => c.key.toLowerCase() === k)?.noc_codes ?? [];
+// Be tolerant to a few shapes: array of categories with { key, codes: [...] }
+// or { key, items: [...] } or { key, noc_codes: [...] }, or even an
+// object map like { stem: ["21231"], trades: ["62020"] }.
+export function codesForCategory(key: string, cats: any): string[] {
+  if (!key) return [];
+
+  // Map/object form: { stem: [...], trades: [...] }
+  if (cats && !Array.isArray(cats) && typeof cats === "object") {
+    const raw = (cats as any)[key];
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.map(String);
+    if (typeof raw === "object") return Object.keys(raw);
+    if (typeof raw === "string") return raw.split(/[\s,;]+/).filter(Boolean);
+    return [];
+  }
+
+  const arr = Array.isArray(cats) ? cats : [];
+  const match = arr.find((c: any) => String(c?.key ?? c?.id ?? c?.slug ?? "") === key);
+  if (!match) return [];
+
+  const raw =
+    match.codes ??      // raw JSON (your case before normalize)
+    match.items ??
+    match.noc_codes ??  // normalized field above
+    match.values ??
+    match.nocs ?? null;
+
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map(String);
+  if (typeof raw === "object") return Object.keys(raw);
+  if (typeof raw === "string") return raw.split(/[\s,;]+/).filter(Boolean);
+  return [];
 }
