@@ -12,16 +12,30 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
+    "scheme": "maplesteps",
+
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.omerpq.maplesteps"
     },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.omerpq.maplesteps",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": [{ "scheme": "maplesteps" }]
+        }
+      ]
     },
+
     "web": {
       "favicon": "./assets/favicon.png"
     }
