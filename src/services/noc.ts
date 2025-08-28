@@ -17,7 +17,7 @@ type CacheEnvelope<T> = {
 
 // ---------- Cache Keys + Network ----------
 const NOC_CACHE_KEY = "ms_noc_cache_v1";
-const NOC_CAT_CACHE_KEY = "ms_noc_categories_cache_v1";
+const NOC_CAT_CACHE_KEY = "ms_noc_categories_cache_v2";
 const FETCH_MS = 12000;
 
 // ---------- Small helpers (local copy to keep this file isolated) ----------
