@@ -1,0 +1,8 @@
+{
+  "schema_version": "1",
+  "last_checked": "2025-08-27",
+  "categories": [
+    { "key": "stem", "label": "STEM", "noc_codes": ["21231"] },
+    { "key": "trades", "label": "Skilled Trades", "noc_codes": ["62020"] }
+  ]
+}

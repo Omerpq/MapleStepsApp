@@ -6,6 +6,9 @@ export const RULES_CONFIG = {
   crsParamsUrl: "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/crs.params.json",
   fswParamsUrl: "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/fsw67.params.json",
   roundsUrl:    "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/rounds.remote.json",
-  feesUrl:      "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/fees.remote.json"
-};
+  feesUrl:      "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/fees.remote.json",
 
+  // NEW (C8)
+  nocUrl: "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/noc.2021.json",
+  nocCategoriesUrl: "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/noc.categories.json"
+};

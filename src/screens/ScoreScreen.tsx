@@ -257,10 +257,10 @@ education,
 
 
 
-         {/* FSW-67 (demo) */}
-      <Text style={styles.h2}>FSW-67 — Eligibility Check</Text>
-<Text style={styles.subtleLine}>Uses Age, CLB, Education from above (FSW only)</Text>
-<View style={{ height: 8 }} />
+ {/* FSW-67 (demo) */}
+ <Text style={styles.h2}>FSW-67 — Eligibility Check</Text>
+ <Text style={styles.subtleLine}>Uses Age, CLB, Education from above (FSW only)</Text>
+ <View style={{ height: 8 }} />
 
 {/* B7 — contextual warnings */}
 <FswWarnings showEca={showEcaWarning} showPof={showPofWarning} />
