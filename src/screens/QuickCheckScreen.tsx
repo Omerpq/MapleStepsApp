@@ -12,6 +12,7 @@ import { primeCrsParams } from "../services/crs";
 import { Picker } from "@react-native-picker/picker";
 import { FSW_EDUCATION_OPTIONS, type FswEducationValue } from "../constants/education";
 
+import NocBadge from "../components/NocBadge";
 
 
 export default function QuickCheckScreen() {
@@ -57,7 +58,7 @@ export default function QuickCheckScreen() {
     <View style={styles.wrap}>
       <Text style={styles.h1}>QuickCheck (FSW-67)</Text>
       <RulesBadge />
-
+      <NocBadge />
       <View style={styles.row}>
         <Text style={styles.label}>Age</Text>
         <TextInput keyboardType="number-pad" value={age} onChangeText={setAge} style={styles.input} testID="qc-age" />

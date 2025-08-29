@@ -12,6 +12,9 @@ import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
 import { FSW_EDUCATION_OPTIONS, type FswEducationValue } from "../constants/education";
 
+import NocBadge from "../components/NocBadge"; // adjust to "@/components/NocBadge" if you use path aliases
+
+
 type FswEducationKey = Parameters<typeof calculateFsw67>[0]["education"];
 
 // ------- FSW warnings (non-blocking, accessible) -------
@@ -208,7 +211,7 @@ education,
     <View style={styles.wrap}>
       <Text style={styles.h1}>Eligibility Score — v2</Text>
       <RulesBadge />
-
+      <NocBadge />
       {/* Shared inputs */}
       <View style={styles.row}>
         <Text style={styles.label}>Age</Text>
