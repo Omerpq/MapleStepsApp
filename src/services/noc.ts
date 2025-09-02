@@ -39,12 +39,29 @@ async function fetchJson(url: string, ms = FETCH_MS) {
 }
 function pickMetaFromAny(raw: any): { last_checked?: string; [k: string]: any } {
   const meta = (raw && typeof raw === "object" && typeof raw.meta === "object") ? raw.meta : {};
-  const last_checked = raw?.last_checked ?? meta?.last_checked;
-  const source_url =
+
+  const last_checked =
+    raw?.last_checked ?? meta?.last_checked;
+
+  // Support both flat and nested source fields
+  const source_name =
+    raw?.source?.name ?? meta?.source_name;
+
+  const source_url_flat =
     Array.isArray(raw?.source_urls) ? raw.source_urls[0] :
     (raw?.source_url ?? meta?.source_url);
-  return { ...meta, ...(last_checked ? { last_checked } : {}), ...(source_url ? { source_url } : {}) };
+
+  const source_url =
+    raw?.source?.url ?? source_url_flat;
+
+  return {
+    ...meta,
+    ...(last_checked ? { last_checked } : {}),
+    ...(source_name ? { source_name } : {}),
+    ...(source_url ? { source_url } : {}),
+  };
 }
+
 
 // ---------- Normalizers ----------
 const normNoc = (json: any): NocItem[] => {
@@ -59,20 +76,44 @@ const normNoc = (json: any): NocItem[] => {
     .filter((x: NocItem) => x.code && x.title);
 };
 
+function toLabel(slug: string): string {
+  const map: Record<string, string> = {
+    healthcare_and_social_services: "Healthcare & social services",
+    science_technology_engineering_and_math_stem: "Science, technology, engineering and math (STEM)",
+    trade: "Trade",
+    trades: "Trades",
+    transport: "Transport",
+    agriculture_and_agri_food: "Agriculture & agri-food",
+    education: "Education",
+    french_language_proficiency: "French-language proficiency",
+  };
+  if (map[slug]) return map[slug];
+  // Fallback: Title Case the slug
+  return slug.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
 const normCats = (json: any): NocCategory[] => {
+  // ✅ New shape from rules repo: { schema_version, groups: { <slug>: [ "31100", ... ] }, ... }
+  if (json && typeof json === "object" && json.groups && typeof json.groups === "object") {
+    return Object.entries(json.groups).map(([key, arr]) => ({
+      key: String(key),
+      label: toLabel(String(key)),
+      noc_codes: Array.isArray(arr) ? arr.map((s) => String(s)) : [],
+    }));
+  }
+
+  // Legacy/fallbacks: array forms
   const arr = Array.isArray(json?.categories) ? json.categories : (Array.isArray(json) ? json : []);
   return arr
     .map((c: any) => ({
       key: String(c?.key ?? ""),
       label: String(c?.label ?? c?.title ?? c?.name ?? c?.key ?? ""),
-      // accept either "codes" (your JSON) or "noc_codes" (alt shape)
       noc_codes: Array.isArray(c?.noc_codes)
         ? c.noc_codes.map((s: any) => String(s))
         : Array.isArray(c?.codes)
         ? c.codes.map((s: any) => String(s))
         : [],
     }))
-    // type the filter param so TS doesn’t squiggle
     .filter((c: NocCategory) => Boolean(c.key));
 };
 

@@ -1,7 +1,7 @@
 ﻿// src/screens/ScoreScreen.tsx
 
-import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, StyleSheet, Switch, Pressable } from "react-native";
+import React, { useEffect, useState, useMemo } from "react";
+import { View, Text, TextInput, StyleSheet, Switch, Pressable, Platform, ScrollView, KeyboardAvoidingView } from "react-native";
 import PrimaryButton from "../components/PrimaryButton";
 import { colors } from "../theme/colors";
 import { getRulesVersion } from "../services/rules";
@@ -13,6 +13,9 @@ import { useNavigation } from "@react-navigation/native";
 import { FSW_EDUCATION_OPTIONS, type FswEducationValue } from "../constants/education";
 
 import NocBadge from "../components/NocBadge"; // adjust to "@/components/NocBadge" if you use path aliases
+import NocPicker from "../components/NocPicker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNoc } from "../hooks/useNoc";
 
 
 type FswEducationKey = Parameters<typeof calculateFsw67>[0]["education"];
@@ -101,6 +104,36 @@ useEffect(() => {
   const [age, setAge] = useState("29");
   const [clb, setClb] = useState("9");
   const [education, setEducation] = useState<FswEducationKey>("bachelor");
+  const [eduFocused, setEduFocused] = useState(false);
+  const [noc, setNoc] = useState<{ code: string; title: string } | null>(null);
+  const { categories } = useNoc();
+const teer = useMemo(
+  () => (noc?.code && /^\d{5}$/.test(noc.code) ? Number(noc.code[1]) : undefined),
+  [noc?.code]
+);
+const nocCats = useMemo(
+  () => (noc?.code ? categories.filter((c) => c.noc_codes.includes(noc.code)) : []),
+  [categories, noc?.code]
+);
+
+  
+// Save whenever NOC changes
+useEffect(() => {
+  (async () => {
+    try {
+      if (noc) {
+        const teer = /^\d{5}$/.test(noc.code) ? Number(noc.code[1]) : undefined;
+        await AsyncStorage.setItem(
+          "ms_selected_noc_v1",
+          JSON.stringify({ code: noc.code, title: noc.title, teer })
+        );
+      } else {
+        await AsyncStorage.removeItem("ms_selected_noc_v1");
+      }
+    } catch {}
+  })();
+}, [noc]);
+
 
 
   const [fswSynced, setFswSynced] = useState<string>("local");
@@ -133,7 +166,7 @@ useEffect(() => {
   const [adCanadianStudy, setAdCanadianStudy] = useState(false);
   const [adArranged, setAdArranged] = useState(false);
   const [adCanadianWork1yr, setAdCanadianWork1yr] = useState(false);
-
+  
   useEffect(() => {
     if (fswArranged) setAdArranged(true);
   }, [fswArranged]);
@@ -208,10 +241,46 @@ education,
   };
 
   return (
-    <View style={styles.wrap}>
+    <KeyboardAvoidingView
+  style={{ flex: 1 }}
+  behavior={Platform.OS === "ios" ? "padding" : undefined}
+>
+  <ScrollView
+    style={styles.scroll}
+    contentContainerStyle={styles.content}
+    keyboardShouldPersistTaps="handled"
+    keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+  >
+
       <Text style={styles.h1}>Eligibility Score — v2</Text>
       <RulesBadge />
       <NocBadge />
+      
+{/* NOC 2021 — picker */}
+<View style={{ marginVertical: 12 }}>
+  <Text style={[styles.label, { width: "100%", paddingTop: 0, marginBottom: 6 }]}>
+    Your NOC (2021)
+  </Text>
+
+  <NocPicker value={noc} onChange={setNoc} />
+
+  {noc && (
+  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }}>
+    <Text style={styles.subtleLine}>
+      Selected: {noc.code} — {noc.title}
+    </Text>
+    <Pressable
+      onPress={() => setNoc(null)}
+      style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: "#eee" }}
+      accessibilityRole="button"
+      accessibilityLabel="Clear selected NOC"
+    >
+      <Text style={{ color: "#333", fontWeight: "600" }}>Clear</Text>
+    </Pressable>
+  </View>
+)}
+
+</View>
       {/* Shared inputs */}
       <View style={styles.row}>
         <Text style={styles.label}>Age</Text>
@@ -236,29 +305,29 @@ education,
 
       </View>
       <View style={styles.row}>
-  <Text style={styles.label}>Education</Text>
-  <View style={{ flex: 1, borderWidth: 1, borderColor: "#ddd", borderRadius: 6 }}>
-    <Picker
-      selectedValue={education}
-      onValueChange={(v) => setEducation(v as any)}
-      testID="sc-education"
+   <Text style={styles.label}>Education</Text>
+   {/* Outer focus ring for the picker */}
+    <View style={[styles.pickerFocusWrap, eduFocused && styles.pickerFocusWrapActive]}>
+      <View style={styles.pickerContainer}>
+        <Picker<FswEducationKey>
+          selectedValue={education}
+          onValueChange={(v: FswEducationKey) => setEducation(v)}
+          testID="sc-education"
+          style={[
+  styles.pickerBase,
+  Platform.OS === "web" ? ({ outlineStyle: "none", borderWidth: 0, backgroundColor: "transparent" } as any) : null,
+]}
 
-    >
-      <Picker<FswEducationKey>
-  selectedValue={education}
-  onValueChange={(v: FswEducationKey) => setEducation(v)}
-  testID="sc-education-2"
->
-  {FSW_EDUCATION_OPTIONS.map(o => (
-    <Picker.Item key={o.value} label={o.label} value={o.value} />
-  ))}
-</Picker>
-
-    </Picker>
+          // add focus handlers; cast to satisfy TS for web
+          {...({ onFocus: () => setEduFocused(true), onBlur: () => setEduFocused(false) } as any)}
+        >
+        {FSW_EDUCATION_OPTIONS.map(o => (
+          <Picker.Item key={o.value} label={o.label} value={o.value} />
+        ))}
+      </Picker>
+      </View>
+    </View>
   </View>
-</View>
-
-
 
  {/* FSW-67 (demo) */}
  <Text style={styles.h2}>FSW-67 — Eligibility Check</Text>
@@ -422,7 +491,9 @@ education,
       <View style={{ height: 16 }} />
 
       
-    </View>
+      </ScrollView>
+</KeyboardAvoidingView>
+
   );
 }
 
@@ -432,17 +503,29 @@ const styles = StyleSheet.create({
   h2: { fontSize: 18, fontWeight: "700", color: colors.text, marginBottom: 8, marginTop: 4 },
   meta: { color: "#666", marginBottom: 2 },
   metaSmall: { color: "#888", marginBottom: 12, fontSize: 12 },
+
   row: { flexDirection: "row", marginBottom: 8 },
   label: { width: 240, color: colors.text, paddingTop: 10 },
+
   input: { flex: 1, borderWidth: 1, borderColor: "#ddd", borderRadius: 6, padding: 10, backgroundColor: "#fafafa" },
+  scroll: { flex: 1, backgroundColor: "#fff" },
+  content: { padding: 16 },
+
+  // Picker outer ring + container
+  pickerFocusWrap: { borderRadius: 8, padding: 2, borderWidth: 0 },                   // becomes 2 when focused
+  pickerFocusWrapActive: { borderWidth: 2, borderColor: "#2563eb" },                  // blue outer ring
+  pickerContainer: { flex: 1, borderWidth: 1, borderColor: "#ddd", borderRadius: 6, overflow: "hidden" },
+  pickerBase: {},                                                                      // base style; web outline removed inline in JSX
+
   result: { marginTop: 12, fontWeight: "600", color: colors.mapleRed },
+
   card: { marginTop: 12, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: "#eee", backgroundColor: "#fafafa" },
   cardTitle: { fontSize: 16, fontWeight: "700", marginBottom: 4 },
   cardMeta: { color: "#666" },
   subtleLine: { fontSize: 12, color: "#666", marginTop: 4 },
   hint: { fontSize: 12, color: "#666", marginTop: 4 },
 
-  // B6
+  // B6 pills
   pills: { flexDirection: "row", gap: 8 },
   pill: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: "#ddd" },
   pillActive: { backgroundColor: "#111", borderColor: "#111" },

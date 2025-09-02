@@ -2,6 +2,7 @@
 import React, { useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { colors } from "../theme/colors";
+import DataFreshness from "../components/DataFreshness";
 
 export default function SettingsScreen({ navigation }: any) {
   const tapCount = useRef(0);
@@ -25,6 +26,7 @@ export default function SettingsScreen({ navigation }: any) {
     }
   }
 
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.h1}>Settings & Legal</Text>
@@ -32,7 +34,8 @@ export default function SettingsScreen({ navigation }: any) {
       <Text style={styles.disclaimer}>
         Disclaimer: This app provides educational information, not legal advice; not affiliated with IRCC.
       </Text>
-
+{/* Data freshness + manual refresh */}
+    <DataFreshness />
       {/* Hidden dev opener (long-press OR 7 quick taps) */}
       <TouchableOpacity onPress={onSecretTap} onLongPress={openDev} activeOpacity={0.6}>
         <Text style={styles.secretHint}>

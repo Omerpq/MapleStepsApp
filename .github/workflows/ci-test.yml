@@ -1,4 +1,4 @@
-name: CI / test
+name: app-tests
 on:
   push:
     branches: [ main, feature/** ]
