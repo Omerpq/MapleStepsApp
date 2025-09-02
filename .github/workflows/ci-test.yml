@@ -1,0 +1,41 @@
+name: app-tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+permissions: read-all
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      TZ: UTC
+      NODE_OPTIONS: --max-old-space-size=2048
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Print Node/npm versions
+        run: |
+          node -v
+          npm -v
+
+
+      - name: Install deps (npm install)
+        run: npm install --no-audit --no-fund
+
+
+      - name: Typecheck (tsc)
+        run: npm run typecheck
+
+      - name: Unit tests (Jest)
+        run: npm test -- --ci --runInBand
