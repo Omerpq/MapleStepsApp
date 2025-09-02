@@ -1,3 +1,25 @@
+// Ensure long renders don’t time out in CI
+jest.setTimeout(20000);
+
+// Make ScoreScreen’s async priming resolve immediately in tests
+jest.mock("../../services/crs", () => {
+  const actual = jest.requireActual("../../services/crs");
+  return {
+    ...actual,
+    primeCrsParams: jest.fn(() => Promise.resolve()),
+    getCrsLastSynced: jest.fn(() => "local"),
+  };
+});
+
+jest.mock("../../services/fsw67", () => {
+  const actual = jest.requireActual("../../services/fsw67");
+  return {
+    ...actual,
+    primeFswParams: jest.fn(() => Promise.resolve()),
+    getFswLastSynced: jest.fn(() => "local"),
+  };
+});
+
 // ---- Mocks must come first ----
 jest.mock("expo", () => ({}), { virtual: true });
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }), { virtual: true });
