@@ -1,0 +1,85 @@
+[
+  { "title": "Welcome to MapleSteps — create your Action Plan baseline", "access": "free", "due_offset_days": 0 },
+  { "title": "Run QuickCheck (FSW-67) and note eligibility status", "access": "free", "due_offset_days": 0 },
+  { "title": "Open Score and review full FSW-67 breakdown", "access": "free", "due_offset_days": 1, "depends_on": ["Run QuickCheck (FSW-67) and note eligibility status"] },
+  { "title": "Add CRS basic profile (age, education, work years, language placeholders)", "access": "free", "due_offset_days": 1 },
+  { "title": "Search NOC 2021 and shortlist 2–3 likely NOC codes", "access": "free", "due_offset_days": 2 },
+  { "title": "Confirm TEER level for your shortlisted NOC", "access": "free", "due_offset_days": 3, "depends_on": ["Search NOC 2021 and shortlist 2–3 likely NOC codes"] },
+  { "title": "Review latest Express Entry rounds (cut-offs & categories)", "access": "free", "due_offset_days": 2 },
+  { "title": "Review current IRCC fees and budget snapshot", "access": "free", "due_offset_days": 2 },
+
+  { "title": "Read: ECA overview (why, who needs it, which bodies)", "access": "premium", "due_offset_days": 3 },
+  { "title": "Pick your ECA body (WES/ICES/IQAS/ICAS/CES/others) based on degree & region", "access": "premium", "due_offset_days": 5, "depends_on": ["Read: ECA overview (why, who needs it, which bodies)"] },
+  { "title": "Make ECA account with chosen body", "access": "premium", "due_offset_days": 6, "depends_on": ["Pick your ECA body (WES/ICES/IQAS/ICAS/CES/others) based on degree & region"] },
+  { "title": "Order university transcripts per ECA body instructions", "access": "premium", "due_offset_days": 14, "depends_on": ["Make ECA account with chosen body"] },
+  { "title": "Arrange degree certificate photocopies / notarization if needed", "access": "premium", "due_offset_days": 14, "depends_on": ["Make ECA account with chosen body"] },
+  { "title": "Ship documents to ECA body and record tracking number", "access": "premium", "due_offset_days": 18, "depends_on": ["Order university transcripts per ECA body instructions", "Arrange degree certificate photocopies / notarization if needed"] },
+  { "title": "Set reminder: follow up with ECA body if no update", "access": "premium", "due_offset_days": 35, "depends_on": ["Ship documents to ECA body and record tracking number"] },
+
+  { "title": "Language plan — pick test (IELTS/CELPIP/TEF/TCF)", "access": "premium", "due_offset_days": 5 },
+  { "title": "Book language test date", "access": "premium", "due_offset_days": 21, "depends_on": ["Language plan — pick test (IELTS/CELPIP/TEF/TCF)"] },
+  { "title": "Baseline mock test to find CLB gaps", "access": "premium", "due_offset_days": 7, "depends_on": ["Language plan — pick test (IELTS/CELPIP/TEF/TCF)"] },
+  { "title": "Create weekly study schedule (listening/reading/writing/speaking)", "access": "premium", "due_offset_days": 8, "depends_on": ["Baseline mock test to find CLB gaps"] },
+  { "title": "Download prep resources and wordlists", "access": "premium", "due_offset_days": 8, "depends_on": ["Create weekly study schedule (listening/reading/writing/speaking)"] },
+
+  { "title": "Work history — list all jobs with start/end dates", "access": "free", "due_offset_days": 3 },
+  { "title": "Pick primary NOC for work experience counting", "access": "premium", "due_offset_days": 6, "depends_on": ["Work history — list all jobs with start/end dates", "Search NOC 2021 and shortlist 2–3 likely NOC codes"] },
+  { "title": "Duty match: compare job duties to selected NOC (≥75% alignment)", "access": "premium", "due_offset_days": 9, "depends_on": ["Pick primary NOC for work experience counting"] },
+  { "title": "Reference letter template download & customization", "access": "premium", "due_offset_days": 12, "depends_on": ["Duty match: compare job duties to selected NOC (≥75% alignment)"] },
+  { "title": "Request reference letters from employers", "access": "premium", "due_offset_days": 18, "depends_on": ["Reference letter template download & customization"] },
+
+  { "title": "Collect employment proofs (contracts, payslips, tax, bank showing salary)", "access": "premium", "due_offset_days": 25, "depends_on": ["Request reference letters from employers"] },
+  { "title": "Prepare alternative proof plan if reference letter issues", "access": "premium", "due_offset_days": 28, "depends_on": ["Collect employment proofs (contracts, payslips, tax, bank showing salary)"] },
+
+  { "title": "Proof of Funds — calculate family size requirement", "access": "free", "due_offset_days": 4 },
+  { "title": "Open/allocate funds to eligible accounts (savings/term deposit)", "access": "premium", "due_offset_days": 10, "depends_on": ["Proof of Funds — calculate family size requirement"] },
+  { "title": "Start 6-month PoF seasoning tracker", "access": "premium", "due_offset_days": 10, "depends_on": ["Open/allocate funds to eligible accounts (savings/term deposit)"] },
+
+  { "title": "Create IRCC GCKey/Sign-In Partner account", "access": "free", "due_offset_days": 10 },
+  { "title": "Create Express Entry profile shell (do not submit yet)", "access": "premium", "due_offset_days": 30, "depends_on": ["Create IRCC GCKey/Sign-In Partner account"] },
+  { "title": "Enter language scores once received", "access": "premium", "due_offset_days": 45, "depends_on": ["Book language test date"] },
+  { "title": "Enter ECA number and results once issued", "access": "premium", "due_offset_days": 60, "depends_on": ["Ship documents to ECA body and record tracking number"] },
+  { "title": "Validate profile details against passport/IDs", "access": "premium", "due_offset_days": 30, "depends_on": ["Create Express Entry profile shell (do not submit yet)"] },
+
+  { "title": "Recompute CRS with actual language & ECA", "access": "free", "due_offset_days": 61, "depends_on": ["Enter language scores once received", "Enter ECA number and results once issued"] },
+  { "title": "Use CRS Optimizer (what-ifs: spouse, French, education, job offer)", "access": "premium", "due_offset_days": 62, "depends_on": ["Recompute CRS with actual language & ECA"] },
+  { "title": "PNP mapping — shortlist suitable streams by profile", "access": "premium", "due_offset_days": 65, "depends_on": ["Use CRS Optimizer (what-ifs: spouse, French, education, job offer)"] },
+  { "title": "PNP required docs checklist", "access": "premium", "due_offset_days": 68, "depends_on": ["PNP mapping — shortlist suitable streams by profile"] },
+  { "title": "Consider French improvement plan if CLB < 7 (bonus points)", "access": "premium", "due_offset_days": 70, "depends_on": ["Recompute CRS with actual language & ECA"] },
+
+  { "title": "Police certificates — list required countries", "access": "premium", "due_offset_days": 20 },
+  { "title": "Request police certificates (lead times vary)", "access": "premium", "due_offset_days": 25, "depends_on": ["Police certificates — list required countries"] },
+  { "title": "Passport validity check (≥6 months) and renew if needed", "access": "free", "due_offset_days": 10 },
+  { "title": "Digital photos meeting IRCC specs", "access": "premium", "due_offset_days": 35 },
+  { "title": "Proof of relationship (spouse/partner/children) docs", "access": "premium", "due_offset_days": 40 },
+
+  { "title": "Finalize EE profile and submit when ready", "access": "premium", "due_offset_days": 75, "depends_on": ["Enter language scores once received", "Enter ECA number and results once issued", "Validate profile details against passport/IDs"] },
+  { "title": "Monitor draws; update profile promptly if any change", "access": "free", "due_offset_days": 76, "depends_on": ["Finalize EE profile and submit when ready"] },
+  { "title": "If ITA received — accept invitation in portal", "access": "premium", "due_offset_days": 90 },
+  { "title": "Upfront medicals — book panel physician", "access": "premium", "due_offset_days": 95, "depends_on": ["If ITA received — accept invitation in portal"] },
+  { "title": "Gather e-APR documents section-by-section", "access": "premium", "due_offset_days": 95, "depends_on": ["If ITA received — accept invitation in portal"] },
+
+  { "title": "Employment letters & proofs — final check against NOC duties", "access": "premium", "due_offset_days": 100, "depends_on": ["Gather e-APR documents section-by-section"] },
+  { "title": "PoF bank letters (official format, average balance)", "access": "premium", "due_offset_days": 100, "depends_on": ["Gather e-APR documents section-by-section"] },
+  { "title": "Police certificates — upload to e-APR", "access": "premium", "due_offset_days": 105, "depends_on": ["Request police certificates (lead times vary)", "Gather e-APR documents section-by-section"] },
+  { "title": "Medical exam — upload info sheet", "access": "premium", "due_offset_days": 105, "depends_on": ["Upfront medicals — book panel physician"] },
+  { "title": "Review e-APR for completeness and consistency", "access": "premium", "due_offset_days": 110, "depends_on": ["Employment letters & proofs — final check against NOC duties", "PoF bank letters (official format, average balance)", "Police certificates — upload to e-APR", "Medical exam — upload info sheet"] },
+
+  { "title": "Submit e-APR and pay fees", "access": "premium", "due_offset_days": 120, "depends_on": ["Review e-APR for completeness and consistency"] },
+  { "title": "Post-submission tracker — record AOR date", "access": "free", "due_offset_days": 121, "depends_on": ["Submit e-APR and pay fees"] },
+  { "title": "Biometrics appointment (if required)", "access": "premium", "due_offset_days": 125, "depends_on": ["Post-submission tracker — record AOR date"] },
+  { "title": "Respond to ADRs (additional document requests) promptly", "access": "premium", "due_offset_days": 140, "depends_on": ["Post-submission tracker — record AOR date"] },
+  { "title": "PPR/COPR — review instructions and next steps", "access": "free", "due_offset_days": 180 },
+
+  { "title": "Landing prep — choose province/city and research housing", "access": "premium", "due_offset_days": 160 },
+  { "title": "Landing checklist — documents to carry", "access": "free", "due_offset_days": 165 },
+  { "title": "Book flights and prepare travel folder", "access": "premium", "due_offset_days": 190, "depends_on": ["PPR/COPR — review instructions and next steps"] },
+  { "title": "Arrival tasks — SIN, bank account, phone plan", "access": "free", "due_offset_days": 210 },
+  { "title": "Healthcare registration (province-specific)", "access": "premium", "due_offset_days": 215, "depends_on": ["Arrival tasks — SIN, bank account, phone plan"] },
+
+  { "title": "Update Action Plan status weekly", "access": "free", "due_offset_days": 7 },
+  { "title": "Back up important documents to Vault", "access": "premium", "due_offset_days": 14 },
+  { "title": "Set notifications for upcoming due dates", "access": "premium", "due_offset_days": 2 },
+  { "title": "Re-check IRCC fees before any submission", "access": "free", "due_offset_days": 74 },
+  { "title": "Re-check latest draw trends before EE submission", "access": "free", "due_offset_days": 73 }
+]
