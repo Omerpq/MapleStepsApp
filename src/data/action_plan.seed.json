@@ -1,7 +1,7 @@
 [
   { "title": "Welcome to MapleSteps — create your Action Plan baseline", "access": "free", "due_offset_days": 0 },
-  { "title": "Run QuickCheck (FSW-67) and note eligibility status", "access": "free", "due_offset_days": 0 },
-  { "title": "Open Score and review full FSW-67 breakdown", "access": "free", "due_offset_days": 1, "depends_on": ["Run QuickCheck (FSW-67) and note eligibility status"] },
+  { "id": "02_fsw67_quickcheck", "title": "Run QuickCheck (FSW-67) and note eligibility status", "access": "free", "due_offset_days": 0, "step": 1, "route": "QuickCheck" },
+  { "id": "02_fsw67_breakdown", "title": "Open Score and review full FSW-67 breakdown", "access": "free", "due_offset_days": 1, "step": 1, "depends_on": ["02_fsw67_quickcheck"] },
   { "title": "Add CRS basic profile (age, education, work years, language placeholders)", "access": "free", "due_offset_days": 1 },
   { "title": "Search NOC 2021 and shortlist 2–3 likely NOC codes", "access": "free", "due_offset_days": 2 },
   { "title": "Confirm TEER level for your shortlisted NOC", "access": "free", "due_offset_days": 3, "depends_on": ["Search NOC 2021 and shortlist 2–3 likely NOC codes"] },

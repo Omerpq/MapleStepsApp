@@ -89,7 +89,71 @@ export default function ActionPlanScreen() {
   const { width } = useWindowDimensions();
   const isCompact = width < 380;
     // Replace with real subscription flag when available
-  const isSubscribed = false;
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  // --- Helpers for premium/blocked visuals ---
+const stripPrefix = (s: string) => String(s || '').replace(/^【(Free|Premium)】\s*/, '');
+const baseId = (id: string) => String(id || '').replace(/__i\d+$/, '');
+
+// Build seed indexes by id and by (prefix-stripped) title
+const seedIndex = useMemo(() => {
+  const byId = new Map<string, any>();
+  const byTitle = new Map<string, any>();
+  (rawSeed as any[]).forEach((r: any) => {
+    if (!r) return;
+    if (r.id) byId.set(baseId(r.id), r);
+    if (r.title) byTitle.set(stripPrefix(r.title), r);
+  });
+  return { byId, byTitle };
+}, []);
+
+const doneBaseIds = useMemo(
+  () => new Set((tasks ?? []).filter(t => t.done).map(t => baseId(t.id))),
+  [tasks]
+);
+const doneTitles = useMemo(
+  () => new Set((tasks ?? []).filter(t => t.done).map(t => stripPrefix(t.title))),
+  [tasks]
+);
+
+const isPremiumTask = useCallback(
+  (t: Task) => typeof t.title === 'string' && t.title.startsWith('【Premium】'),
+  []
+);
+
+const findSeedForTask = useCallback(
+  (t: Task) => seedIndex.byId.get(baseId(t.id)) ?? seedIndex.byTitle.get(stripPrefix(t.title)),
+  [seedIndex]
+);
+
+// Returns the list of unmet prerequisite titles for this task
+const getUnmetDeps = useCallback(
+  (t: Task): string[] => {
+    const row = findSeedForTask(t);
+    const deps: string[] = row?.depends_on ?? [];
+    const unmet: string[] = [];
+    deps.forEach(d => {
+      const depRow =
+        seedIndex.byId.get(baseId(d)) ?? seedIndex.byTitle.get(stripPrefix(d));
+      const depBase = depRow?.id ? baseId(depRow.id) : baseId(String(d));
+      const depTitle = depRow?.title ? stripPrefix(depRow.title) : stripPrefix(String(d));
+      if (!(doneBaseIds.has(depBase) || doneTitles.has(depTitle))) {
+        unmet.push(depTitle);
+      }
+    });
+    return unmet;
+  },
+  [findSeedForTask, seedIndex, doneBaseIds, doneTitles]
+);
+
+const isBlockedTask = useCallback(
+  (t: Task) => getUnmetDeps(t).length > 0,
+  [getUnmetDeps]
+);
+
+
+
+
 
   // Compute "What's Next" (recomputes whenever tasks or subscription change)
   const nextUp = useMemo<NextTaskCandidate | null>(() => {
@@ -181,19 +245,52 @@ export default function ActionPlanScreen() {
     );
   }
 
-  const renderItem = ({ item }: { item: Task }) => (
-    <View style={[styles.row, item.done && styles.rowDone]}>
-      <Pressable onPress={() => toggleDone(item.id)} style={[styles.checkbox, item.done && styles.checkboxOn]} />
+  const renderItem = ({ item }: { item: Task }) => {
+  const premiumLocked = !isSubscribed && isPremiumTask(item);
+  const unmet = getUnmetDeps(item);
+  const blocked = unmet.length > 0;
+
+  return (
+    <View style={[
+      styles.row,
+      item.done && styles.rowDone,
+      (premiumLocked || blocked) && styles.rowDisabled,
+    ]}>
+      <Pressable
+        onPress={() => { if (premiumLocked || blocked) return; toggleDone(item.id); }}
+        style={[styles.checkbox, item.done && styles.checkboxOn]}
+      />
       <View style={{ flex: 1 }}>
-        <Text style={[styles.itemTitle, item.done && styles.itemTitleDone]}>{item.title}</Text>
-        <Text style={styles.due}>Due: {new Date(item.dueISO).toLocaleString()} • Offset: {item.offsetDays}d</Text>
-        <View style={styles.stepper}>
-          <Pressable onPress={() => adjustOffset(item.id, -1)} style={styles.chip}><Text style={styles.chipText}>− 1d</Text></Pressable>
-          <Pressable onPress={() => adjustOffset(item.id, +1)} style={styles.chip}><Text style={styles.chipText}>+ 1d</Text></Pressable>
+        <Text style={[styles.itemTitle, item.done && styles.itemTitleDone]}>
+          {item.title}
+        </Text>
+        <Text style={styles.due}>
+          Due: {new Date(item.dueISO).toLocaleString()} • Offset: {item.offsetDays}d
+        </Text>
+
+        {premiumLocked && <Text style={styles.lockNote}>🔒 Premium — unlock to act</Text>}
+        {blocked && (
+          <>
+            <Text style={styles.blockedNote}>⛔ Blocked — complete prerequisite first</Text>
+            <Text style={styles.blockedDetail}>Needs: {unmet.join(', ')}</Text>
+          </>
+        )}
+
+        <View style={styles.stepper} pointerEvents={(premiumLocked || blocked) ? 'none' : 'auto'}>
+          <Pressable onPress={() => adjustOffset(item.id, -1)} style={styles.chip}>
+            <Text style={styles.chipText}>− 1d</Text>
+          </Pressable>
+          <Pressable onPress={() => adjustOffset(item.id, +1)} style={styles.chip}>
+            <Text style={styles.chipText}>+ 1d</Text>
+          </Pressable>
         </View>
       </View>
     </View>
   );
+};
+
+
+
 
   return (
     <View style={styles.container}>
@@ -205,7 +302,7 @@ export default function ActionPlanScreen() {
 
         {/* Tiny toggle row */}
         <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>{viewMode === 'suggested' ? 'Suggested' : 'Due date'}</Text>
+          <Text style={styles.toggleLabel}>{viewMode === 'suggested' ? 'Suggested order' : 'Due date order'}</Text>
           <Switch value={viewMode === 'suggested'} onValueChange={async (flag) => {
             const mode: ViewMode = flag ? 'suggested' : 'due';
             await AsyncStorage.setItem(VIEWMODE_KEY, mode);
@@ -234,6 +331,13 @@ export default function ActionPlanScreen() {
               }}
               primary
             />
+            <Chip
+              label={isSubscribed ? "Premium ON" : "Premium OFF"}
+              tip="Toggle premium for testing"
+              onPress={() => setIsSubscribed(v => !v)}
+              primary
+            />
+
           </View>
         )}
       </View>
@@ -247,38 +351,49 @@ export default function ActionPlanScreen() {
   renderItem={renderItem}
   ItemSeparatorComponent={() => <View style={styles.sep} />}
   // 👇 Make the banner sticky
-  ListHeaderComponent={
-    nextUp
-      ? (
-        <View /* keep a wrapper so sticky works cleanly */>
-          <Pressable
-            onPress={() => goToTask(navigation, nextUp)}
-            style={styles.banner}
-            accessibilityRole="button"
-            accessibilityLabel={`Next step: ${nextUp.title}`}
-          >
-            <Text style={styles.bannerTitle}>Next step: {nextUp.title}</Text>
-            {nextUp.dueISO ? (
-              <Text style={styles.bannerDue}>
-                {(() => {
-                  const due = nextUp.dueISO as string;
-                  return `Due ${new Date(due).toLocaleDateString()}`;
-                })()}
-              </Text>
-            ) : null}
-          </Pressable>
-        </View>
-      )
-      : null
-  }
-  stickyHeaderIndices={nextUp ? [0] : undefined}
+ListHeaderComponent={
+  nextUp
+    ? (
+      <View style={styles.stickyWrap}>
+        <Pressable
+          onPress={() => goToTask(navigation, nextUp)}
+          style={[styles.banner, styles.bannerSticky]}
+          accessibilityRole="button"
+          accessibilityLabel={`Next step: ${nextUp.title}`}
+        >
+          <Text style={styles.bannerTitle}>Next step: {nextUp.title}</Text>
+          {nextUp.dueISO ? (
+            <Text style={styles.bannerDue}>
+              {(() => {
+                const due = nextUp.dueISO as string;
+                return `Due ${new Date(due).toLocaleDateString()}`;
+              })()}
+            </Text>
+          ) : null}
+        </Pressable>
+        {/* 🔒 Edge cover: overlaps the first row by ~1px so nothing peeks */}
+        
+      </View>
+    )
+    : null
+}
+ListHeaderComponentStyle={{ backgroundColor: 'transparent', marginBottom: 8 }}
+
+stickyHeaderIndices={nextUp ? [0] : undefined}
 />
 
-    </View>
+
+
+
+</View>
   );
 }
-
 const styles = StyleSheet.create({
+rowDisabled: { opacity: 0.5 },
+lockNote: { marginTop: 4, fontSize: 12, color: '#fbbf24' },   // amber
+blockedNote: { marginTop: 4, fontSize: 12, color: '#f87171' }, // red
+blockedDetail: { marginTop: 2, fontSize: 12, color: '#9ca3af' },
+
   container: { flex: 1, padding: 16 },
   header: { marginBottom: 8 },
   title: { fontSize: 22, fontWeight: '700' },
@@ -295,14 +410,27 @@ const styles = StyleSheet.create({
 
   // ✅ Keep banner STYLES AT TOP LEVEL (not inside devBar)
   banner: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: '#111827', // <- cleaned
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#374151',     // <- cleaned
-    marginBottom: 10,
-  },
+  paddingVertical: 12,
+  paddingHorizontal: 14,
+  backgroundColor: '#111827',
+  borderRadius: 12,
+  // No border/shadow — prevents any 1px artifact
+  // shadowOpacity: 0, elevation: 0,
+},
+
+bannerSticky: {
+  backgroundColor: '#024111ff',      // slightly different tone for the sticky card
+},
+
+
+// ✅ add these two new styles
+stickyWrap: {
+  backgroundColor: 'transparent',  // no opaque rectangle behind the card
+},
+
+
+
+
   bannerTitle: { color: '#f9fafb', fontWeight: '700' },
   bannerDue: { color: '#9ca3af', marginTop: 2, fontSize: 12 },
 
