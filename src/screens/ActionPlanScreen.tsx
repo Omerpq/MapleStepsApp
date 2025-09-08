@@ -151,6 +151,28 @@ const isBlockedTask = useCallback(
   [getUnmetDeps]
 );
 
+const toCandidate = useCallback(
+  (t: Task): NextTaskCandidate => {
+    const row = findSeedForTask(t);
+    const unmet = getUnmetDeps(t);
+    const blocked = unmet.length > 0;
+    const premium = isPremiumTask(t);
+
+    return {
+      id: t.id,
+      title: stripPrefix(t.title),
+      dueISO: t.dueISO ?? null,
+      // These two aren't used by goToTask; safe dummies
+      seedIndex: 0,
+      stepOrder: 0,
+      isPremium: premium,
+      isBlocked: blocked,
+      isLocked: premium && !isSubscribed,
+      routeHint: row?.route,
+    };
+  },
+  [findSeedForTask, getUnmetDeps, isPremiumTask, isSubscribed]
+);
 
 
 
@@ -185,6 +207,9 @@ const isBlockedTask = useCallback(
         const seeded = await AsyncStorage.getItem(STORAGE_KEY);
         list = seeded ? (JSON.parse(seeded) as Task[]) : [];
       }
+
+
+
 
       const v = await AsyncStorage.getItem(VIEWMODE_KEY);
       const mode: ViewMode = v === 'suggested' ? 'suggested' : 'due';
@@ -260,31 +285,39 @@ const isBlockedTask = useCallback(
         onPress={() => { if (premiumLocked || blocked) return; toggleDone(item.id); }}
         style={[styles.checkbox, item.done && styles.checkboxOn]}
       />
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.itemTitle, item.done && styles.itemTitleDone]}>
-          {item.title}
-        </Text>
-        <Text style={styles.due}>
-          Due: {new Date(item.dueISO).toLocaleString()} • Offset: {item.offsetDays}d
-        </Text>
+      <Pressable
+  style={{ flex: 1 }}
+  // Blocked tasks remain disabled; Premium-locked should open Paywall
+  disabled={blocked}
+  onPress={() => goToTask(navigation, toCandidate(item), isSubscribed)}
+  accessibilityRole="button"
+  accessibilityLabel={`Open: ${stripPrefix(item.title)}`}
+>
+  <Text style={[styles.itemTitle, item.done && styles.itemTitleDone]}>
+    {item.title}
+  </Text>
+  <Text style={styles.due}>
+    Due: {new Date(item.dueISO).toLocaleString()} • Offset: {item.offsetDays}d
+  </Text>
 
-        {premiumLocked && <Text style={styles.lockNote}>🔒 Premium — unlock to act</Text>}
-        {blocked && (
-          <>
-            <Text style={styles.blockedNote}>⛔ Blocked — complete prerequisite first</Text>
-            <Text style={styles.blockedDetail}>Needs: {unmet.join(', ')}</Text>
-          </>
-        )}
+  {premiumLocked && <Text style={styles.lockNote}>🔒 Premium — unlock to act</Text>}
+  {blocked && (
+    <>
+      <Text style={styles.blockedNote}>⛔ Blocked — complete prerequisite first</Text>
+      <Text style={styles.blockedDetail}>Needs: {unmet.join(', ')}</Text>
+    </>
+  )}
 
-        <View style={styles.stepper} pointerEvents={(premiumLocked || blocked) ? 'none' : 'auto'}>
-          <Pressable onPress={() => adjustOffset(item.id, -1)} style={styles.chip}>
-            <Text style={styles.chipText}>− 1d</Text>
-          </Pressable>
-          <Pressable onPress={() => adjustOffset(item.id, +1)} style={styles.chip}>
-            <Text style={styles.chipText}>+ 1d</Text>
-          </Pressable>
-        </View>
-      </View>
+  <View style={styles.stepper} pointerEvents={(premiumLocked || blocked) ? 'none' : 'auto'}>
+    <Pressable onPress={() => adjustOffset(item.id, -1)} style={styles.chip}>
+      <Text style={styles.chipText}>− 1d</Text>
+    </Pressable>
+    <Pressable onPress={() => adjustOffset(item.id, +1)} style={styles.chip}>
+      <Text style={styles.chipText}>+ 1d</Text>
+    </Pressable>
+  </View>
+</Pressable>
+
     </View>
   );
 };
@@ -356,7 +389,7 @@ ListHeaderComponent={
     ? (
       <View style={styles.stickyWrap}>
         <Pressable
-          onPress={() => goToTask(navigation, nextUp)}
+onPress={() => goToTask(navigation, nextUp, isSubscribed)}
           style={[styles.banner, styles.bannerSticky]}
           accessibilityRole="button"
           accessibilityLabel={`Next step: ${nextUp.title}`}

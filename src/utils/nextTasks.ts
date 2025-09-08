@@ -168,10 +168,24 @@ const isBlocked = deps.some(d => {
   return { next: candidates[0] ?? null, candidates };
 }
 
+/**
+ * Centralized navigation for Action Plan taps.
+ * - Premium + unsubscribed -> Paywall (with { from: task.id })
+ * - Otherwise -> routeHint (if set) or fall back to ActionPlan focus
+ */
 export function goToTask(
   navigation: { navigate: (screen: string, params?: any) => void },
-  task: NextTaskCandidate
+  task: NextTaskCandidate,
+  isSubscribed: boolean
 ) {
-  if (task.routeHint) { navigation.navigate(task.routeHint); return; }
+  if (task.isPremium && !isSubscribed) {
+    navigation.navigate("Paywall", { from: task.id });
+    return;
+  }
+  if (task.routeHint) {
+    navigation.navigate(task.routeHint);
+    return;
+  }
   navigation.navigate("ActionPlan", { focusTaskId: task.id });
 }
+
