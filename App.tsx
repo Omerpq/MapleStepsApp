@@ -8,6 +8,8 @@ import { colors } from "./src/theme/colors";
 import NocDevScreen from "./src/dev/NocDevScreen";
 import * as Linking from "expo-linking";
 
+import { migrateUpdatesCachesOnce } from "./src/services/updates"; // ADD
+
 
 const SHOW_NOC_DEV = false;
 
@@ -37,6 +39,11 @@ const linking = {
 
 
 export default function App() {
+  export default function App() {
+  React.useEffect(() => {
+    migrateUpdatesCachesOnce();
+  }, []); // ADD: clear legacy ms_rounds_cache_v1 once
+
     if (SHOW_NOC_DEV) {
     // Minimal wrapper; no nav/rq needed for this test
     return <NocDevScreen />;

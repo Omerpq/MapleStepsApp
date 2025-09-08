@@ -136,6 +136,43 @@ async function fetchJson(url: string, ms = FETCH_MS) {
   return res.json();
 }
 
+// NEW: Conditional JSON fetch with ETag / If-Modified-Since validators.
+// - Reads validators from cache.meta (etag, last_modified)
+// - On 304: returns without a body
+// - On 200: returns body + fresh validators
+async function conditionalFetchJson(
+  url: string,
+  validators?: { etag?: string | null; last_modified?: string | null },
+  ms = FETCH_MS
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (validators?.etag) headers["If-None-Match"] = validators.etag!;
+  if (validators?.last_modified) headers["If-Modified-Since"] = validators.last_modified!;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers,
+    // allow revalidation (do not use no-store here)
+    cache: "no-cache",
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timer));
+
+  const etag = res.headers.get("ETag");
+  const lastModified = res.headers.get("Last-Modified");
+
+  if (res.status === 304) {
+    return { status: 304 as const, etag, lastModified };
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const json = await res.json();
+  return { status: 200 as const, json, etag, lastModified };
+}
+
+
 
 const normRounds = (json: any) => {
   
@@ -237,21 +274,47 @@ const normFees = (json: any) => {
 };
 
 export async function loadRounds(): Promise<LoaderResult<Round[]>> {
-  // 1) Remote
+    // Pull validators from cache first (for ETag/Last-Modified)
+  const cached = await readCache<Round[]>(ROUND_CACHE_KEY).catch(() => null);
+  const validators = {
+    etag: cached?.meta?.etag ?? null,
+    last_modified: cached?.meta?.last_modified ?? null,
+  };
+
+    // 1) Remote (conditional)
   try {
-    const raw = await fetchJson(RULES_CONFIG.roundsUrl);
-    const data = normRounds(raw) as Round[];
-    if (!data.length) throw new Error("empty rounds");
+    const res = await conditionalFetchJson(RULES_CONFIG.roundsUrl, validators);
 
-    const meta = pickMetaFromAny(raw);
-    const savedAt = Date.now();
+    if (res.status === 304 && cached && Array.isArray(cached.data) && cached.data.length) {
+      // Keep existing cache; surface 304 in meta (unchanged cachedAt)
+      return {
+        source: "cache",
+        cachedAt: cached.savedAt,
+        meta: { ...(cached.meta || {}), status: 304 },
+        data: cached.data,
+      };
+    }
 
-    await writeCache<Round[]>(ROUND_CACHE_KEY, { savedAt, meta, data });
+    if (res.status === 200) {
+      const data = normRounds(res.json) as Round[];
+      if (!data.length) throw new Error("empty rounds");
 
-    return { source: "remote", cachedAt: savedAt, meta, data };
+      const savedAt = Date.now();
+      const metaFromBody = pickMetaFromAny(res.json);
+      const meta = {
+        ...metaFromBody,
+        etag: res.etag ?? validators.etag ?? undefined,
+        last_modified: res.lastModified ?? validators.last_modified ?? undefined,
+        status: 200,
+      };
+
+      await writeCache<Round[]>(ROUND_CACHE_KEY, { savedAt, meta, data });
+      return { source: "remote", cachedAt: savedAt, meta, data };
+    }
   } catch {
     // fall through
   }
+
 
   // 2) Cache
   try {
@@ -275,23 +338,47 @@ export async function loadRounds(): Promise<LoaderResult<Round[]>> {
 }
 
 export async function loadFees(): Promise<LoaderResult<Fee[]>> {
-  // 1) Remote
+    // Pull validators from cache first (for ETag/Last-Modified)
+  const cached = await readCache<Fee[]>(FEES_CACHE_KEY).catch(() => null);
+  const validators = {
+    etag: cached?.meta?.etag ?? null,
+    last_modified: cached?.meta?.last_modified ?? null,
+  };
+
+    // 1) Remote (conditional)
   try {
-    const raw = await fetchJson(RULES_CONFIG.feesUrl);
-    const { list, meta } = normFees(raw);
-    const data = list as Fee[];
-    if (!data.length) throw new Error("empty fees");
+    const res = await conditionalFetchJson(RULES_CONFIG.feesUrl, validators);
 
-    // merge any top-level meta (e.g., last_checked/source_url) with normed meta
-    const mergedMeta = { ...pickMetaFromAny(raw), ...meta };
-    const savedAt = Date.now();
+    if (res.status === 304 && cached && Array.isArray(cached.data) && cached.data.length) {
+      return {
+        source: "cache",
+        cachedAt: cached.savedAt,
+        meta: { ...(cached.meta || {}), status: 304 },
+        data: cached.data,
+      };
+    }
 
-    await writeCache<Fee[]>(FEES_CACHE_KEY, { savedAt, meta: mergedMeta, data });
+    if (res.status === 200) {
+      const { list, meta: normedMeta } = normFees(res.json);
+      const data = list as Fee[];
+      if (!data.length) throw new Error("empty fees");
 
-    return { source: "remote", cachedAt: savedAt, meta: mergedMeta, data };
+      const savedAt = Date.now();
+      const mergedMeta = {
+        ...pickMetaFromAny(res.json),
+        ...normedMeta,
+        etag: res.etag ?? validators.etag ?? undefined,
+        last_modified: res.lastModified ?? validators.last_modified ?? undefined,
+        status: 200,
+      };
+
+      await writeCache<Fee[]>(FEES_CACHE_KEY, { savedAt, meta: mergedMeta, data });
+      return { source: "remote", cachedAt: savedAt, meta: mergedMeta, data };
+    }
   } catch {
     // fall through
   }
+
 
   // 2) Cache
   try {

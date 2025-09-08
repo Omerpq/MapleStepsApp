@@ -55,6 +55,10 @@ const fmtDateTime = (dOrIso: Date | string | undefined) => {
   return d.toLocaleString();
 };
 
+const syncLabel = (meta?: any) =>
+  meta?.status === 200 ? "updated" :
+  meta?.status === 304 ? "validated" : undefined;
+
 const formatCad = (v: number | string | undefined) => {
   const n = typeof v === "number" ? v : Number(v);
   if (isNaN(n)) return String(v ?? "—");
@@ -67,6 +71,7 @@ export default function UpdatesScreen() {
   const [roundsSrc, setRoundsSrc] = useState<"remote"|"cache"|"local">("local");
   const [roundsNotice, setRoundsNotice] = useState<string | null>(null);
   const [roundsCachedAt, setRoundsCachedAt] = useState<number | null>(null);
+  const [roundsMeta, setRoundsMeta] = useState<any | null>(null);
 
   // Fees
   const [feesList, setFeesList] = useState<any[]>([]);
@@ -91,13 +96,14 @@ export default function UpdatesScreen() {
 }
 
 
-  function applyRounds(r: LoaderResult<Round[]>) {
-  setRounds(r.data);
-  setRoundsSrc(r.source);
-  setRoundsCachedAt(pickDisplayTime(r));
-  setRoundsNotice(buildNotice("rounds", r));
-
+    function applyRounds(r: LoaderResult<Round[]>) {
+    setRounds(r.data);
+    setRoundsSrc(r.source);
+    setRoundsMeta(r.meta || null); // NEW
+    setRoundsCachedAt(pickDisplayTime(r));
+    setRoundsNotice(buildNotice("rounds", r));
   }
+
 
   function applyFees(f: LoaderResult<Fee[]>) {
   setFeesList(f.data);
@@ -254,7 +260,8 @@ const clearUpdatesCaches = async () => {
         {latest ? (
           <>
             <Text style={[styles.meta, { opacity: 0.8 }]}>
-              Source: {roundsSrc} {roundsSrc === "cache" ? "(last good remote)" : roundsSrc === "local" ? "(bundled fallback)" : ""}
+                            Source: {roundsSrc} {roundsSrc === "cache" ? "(last good remote)" : roundsSrc === "local" ? "(bundled fallback)" : ""}{syncLabel(roundsMeta) && ` • ${syncLabel(roundsMeta)}`}
+
             </Text>
 
             <Text style={styles.meta}>Date: {fmtDate(latest.date)}</Text>
@@ -284,7 +291,7 @@ const clearUpdatesCaches = async () => {
       <View style={styles.card}>
         <Text style={styles.title}>Current Fees</Text>
         <Text style={[styles.meta, { opacity: 0.8 }]}>
-          Source: {feesSrc} {feesSrc === "cache" ? "(last good remote)" : feesSrc === "local" ? "(bundled fallback)" : ""}
+          Source: {feesSrc} {feesSrc === "cache" ? "(last good remote)" : feesSrc === "local" ? "(bundled fallback)" : ""}{syncLabel(feesMeta) && ` • ${syncLabel(feesMeta)}`}
         </Text>
 
         {feesList.length > 0 ? (
