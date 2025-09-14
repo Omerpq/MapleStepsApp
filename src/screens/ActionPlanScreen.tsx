@@ -1,10 +1,8 @@
 // src/screens/ActionPlanScreen.tsx
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 
-import {
-  View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Switch, useWindowDimensions, Alert,
-} from 'react-native';
-import * as ExpoNotifications from 'expo-notifications';
+import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Switch, useWindowDimensions } from 'react-native';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useNavigation } from '@react-navigation/native';
@@ -434,15 +432,8 @@ const toCandidate = useCallback(
               onPress={() => setIsSubscribed(v => !v)}
               primary
             />
-            <Chip
-            label="Notifs?"
-            tip="Show how many notifications are scheduled"
-            onPress={async () => {
-              const all = await ExpoNotifications.getAllScheduledNotificationsAsync();
-              Alert.alert('Scheduled notifications', `${all.length} scheduled`);
-            }}
-          />
-        </View>
+            
+            </View>
       )}
           
       </View>
