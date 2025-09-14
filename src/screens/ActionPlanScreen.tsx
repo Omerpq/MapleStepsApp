@@ -2,8 +2,9 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 
 import {
-  View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Switch, useWindowDimensions,
+  View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Switch, useWindowDimensions, Alert,
 } from 'react-native';
+import * as ExpoNotifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useNavigation } from '@react-navigation/native';
@@ -12,6 +13,10 @@ import { getNextTask, goToTask, NextTaskCandidate, PersistedTask } from '../util
 
 import { applySeed, Task, SeedTask, calcDueISO } from '../utils/applySeed';
 import rawSeed from '../data/action_plan.seed.json';
+
+
+import { notifications } from '../services/notifications';
+
 
 const seed = rawSeed as unknown as SeedTask[];
 const STORAGE_KEY = 'ms.tasks.v1';
@@ -90,6 +95,9 @@ export default function ActionPlanScreen() {
   const isCompact = width < 380;
     // Replace with real subscription flag when available
   const [isSubscribed, setIsSubscribed] = useState(false);
+
+
+  const reconcilingRef = useRef(false);
 
   // --- Helpers for premium/blocked visuals ---
 const stripPrefix = (s: string) => String(s || '').replace(/^【(Free|Premium)】\s*/, '');
@@ -184,12 +192,38 @@ const toCandidate = useCallback(
     return next;
   }, [tasks, isSubscribed]);
 
+
+  const reconcileSchedules = useCallback(async (list: Task[]) => {
+  if (reconcilingRef.current) return;     // prevent overlap
+  reconcilingRef.current = true;
+  try {
+    const now = Date.now();
+    for (const t of list) {
+      if (!t.dueISO) { await notifications.cancel(t.id); continue; }
+      const dueMs = new Date(t.dueISO).getTime();
+      if (!t.done && dueMs > now) {
+        await notifications.reschedule(t.id, t.dueISO, {
+          title: 'MapleSteps — Due today',
+          body: stripPrefix(t.title),
+        });
+      } else {
+        await notifications.cancel(t.id);
+      }
+    }
+  } finally {
+    reconcilingRef.current = false;
+  }
+}, []);
+
   const seedNow = useCallback(async () => {
     const expanded = applySeed(seed);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(expanded));
     setTasks(expanded);
+    // 🔔 reset all (dev) and schedule future, not-done tasks
+    await notifications.cancelAllDev();
+    await reconcileSchedules(expanded);
     return expanded.length;
-  }, []);
+  }, [reconcileSchedules]);
 
   const sortByMode = useCallback((list: Task[], mode: ViewMode) => {
     return mode === 'due' ? sortByDue(list) : sortBySuggested(list);
@@ -214,18 +248,21 @@ const toCandidate = useCallback(
       const v = await AsyncStorage.getItem(VIEWMODE_KEY);
       const mode: ViewMode = v === 'suggested' ? 'suggested' : 'due';
       setViewMode(mode);
-      setTasks(sortByMode(list, mode));
+      const sorted = sortByMode(list, mode);
+      setTasks(sorted);
+      await reconcileSchedules(sorted);
     } catch {
       await seedNow();
       const seeded = await AsyncStorage.getItem(STORAGE_KEY);
       const list = seeded ? (JSON.parse(seeded) as Task[]) : [];
-      setTasks(sortByMode(list, 'due'));
+      const sorted = sortByMode(list, 'due');
+      setTasks(sorted);
       setViewMode('due');
+      void reconcileSchedules(sorted);
     } finally {
       setLoading(false);
     }
-  }, [seedNow, sortByMode]);
-
+}, [seedNow, sortByMode, reconcileSchedules]);
   useEffect(() => { load(); }, [load]);
 
   const save = useCallback(async (next: Task[]) => {
@@ -235,8 +272,18 @@ const toCandidate = useCallback(
 
   const toggleDone = useCallback(async (id: string) => {
     if (!tasks) return;
-    const next = tasks.map(t => (t.id === id ? { ...t, done: !t.done } : t));
+    const prev = tasks.find(t => t.id === id);
+    const nextDone = !prev?.done;
+    const next = tasks.map(t => (t.id === id ? { ...t, done: nextDone } : t));
     await save(next);
+    // 🔔 notifications: cancel when completed; (re)schedule when re-opened & due in future
+    if (nextDone) {
+      await notifications.cancel(id);
+    } else if (prev?.dueISO && new Date(prev.dueISO).getTime() > Date.now()) {
+      await notifications.reschedule(id, prev.dueISO, { body: stripPrefix(prev.title) });
+    } else {
+      await notifications.cancel(id);
+    }
   }, [tasks, save]);
 
   // Offset change: push/pull depending on current view
@@ -250,16 +297,30 @@ const toCandidate = useCallback(
     });
     const sorted = viewMode === 'due' ? sortByDue(next) : sortBySuggested(next);
     await save(sorted);
+    // 🔔 notifications for only the changed task
+    const updated = next.find(t => t.id === id);
+    if (updated) {
+      if (updated.done) {
+        await notifications.cancel(id);
+      } else if (updated.dueISO && new Date(updated.dueISO).getTime() > Date.now()) {
+        await notifications.reschedule(id, updated.dueISO, { body: stripPrefix(updated.title) });
+      } else {
+        await notifications.cancel(id);
+      }
+    }
   }, [tasks, viewMode, save]);
 
   // ✅ Immediate reset (no Alert dialog). Fully clears and re-seeds.
   const resetImmediate = useCallback(async () => {
-    await AsyncStorage.removeItem(STORAGE_KEY);
-    await seedNow();
-    const updated = await AsyncStorage.getItem(STORAGE_KEY);
-    const list = updated ? (JSON.parse(updated) as Task[]) : [];
-    setTasks(sortByMode(list, viewMode));
-  }, [seedNow, sortByMode, viewMode]);
+  await AsyncStorage.removeItem(STORAGE_KEY);
+  await notifications.cancelAllDev();
+  await seedNow();
+  const updated = await AsyncStorage.getItem(STORAGE_KEY);
+  const list = updated ? (JSON.parse(updated) as Task[]) : [];
+  const sorted = sortByMode(list, viewMode);
+  setTasks(sorted);
+  await reconcileSchedules(sorted);
+}, [seedNow, sortByMode, viewMode, reconcileSchedules]);
 
   if (loading || !tasks) {
     return (
@@ -357,11 +418,14 @@ const toCandidate = useCallback(
               label="Re-seed"
               tip="Refresh plan: load the default steps (replaces current tasks)."
               onPress={async () => {
-                await seedNow();
-                const updated = await AsyncStorage.getItem(STORAGE_KEY);
-                const list = updated ? (JSON.parse(updated) as Task[]) : [];
-                setTasks(sortByMode(list, viewMode));
-              }}
+              await notifications.cancelAllDev();
+              await seedNow();
+              const updated = await AsyncStorage.getItem(STORAGE_KEY);
+              const list = updated ? (JSON.parse(updated) as Task[]) : [];
+              const sorted = sortByMode(list, viewMode);
+              setTasks(sorted);
+              await reconcileSchedules(sorted);
+            }}
               primary
             />
             <Chip
@@ -370,9 +434,17 @@ const toCandidate = useCallback(
               onPress={() => setIsSubscribed(v => !v)}
               primary
             />
-
-          </View>
-        )}
+            <Chip
+            label="Notifs?"
+            tip="Show how many notifications are scheduled"
+            onPress={async () => {
+              const all = await ExpoNotifications.getAllScheduledNotificationsAsync();
+              Alert.alert('Scheduled notifications', `${all.length} scheduled`);
+            }}
+          />
+        </View>
+      )}
+          
       </View>
       
 

@@ -1,6 +1,8 @@
 // src/utils/nextTasks.ts
 import seed from "../data/action_plan.seed.json";
 
+let __nextTasksWarnedInvalidSeed = false;
+
 export type Access = "free" | "premium";
 export type PersistedTask = {
   id: string;         // may be suffixed: foo__i1
@@ -49,12 +51,14 @@ const SEED: SeedItem[] = Array.isArray(RAW) ? RAW.filter(isValidSeedItem) : [];
 
 if (__DEV__ && Array.isArray(RAW)) {
   const dropped = RAW.length - SEED.length;
-  if (dropped > 0) {
+  if (dropped > 0 && !__nextTasksWarnedInvalidSeed) {
     // Useful hint if your seed carries section dividers or comments without ids
     // eslint-disable-next-line no-console
     console.warn(`[nextTasks] Dropped ${dropped} invalid seed row(s) (missing id).`);
+    __nextTasksWarnedInvalidSeed = true; // warn only once per session
   }
 }
+
 
 const seedByBaseId: Record<string, SeedItem> = Object.create(null);
 const indexByBaseId: Record<string, number> = Object.create(null);

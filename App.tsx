@@ -1,4 +1,15 @@
+//App.tsx
 import React from "react";
+import { LogBox } from 'react-native';
+
+// Silence Expo Go remote-push error (we only use local scheduling),
+// and the known seed warning from nextTasks in dev.
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications (remote notifications)',
+  '`expo-notifications` functionality is not fully supported in Expo Go',
+  '[nextTasks] Dropped',
+]);
+
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer, DefaultTheme, Theme } from "@react-navigation/native";
 import RootNavigator from "./src/navigation/RootNavigator";
@@ -9,7 +20,7 @@ import NocDevScreen from "./src/dev/NocDevScreen";
 import * as Linking from "expo-linking";
 
 import { migrateUpdatesCachesOnce } from "./src/services/updates"; // ADD
-
+import { notifications } from "./src/services/notifications";
 
 const SHOW_NOC_DEV = false;
 
@@ -39,9 +50,9 @@ const linking = {
 
 
 export default function App() {
-  export default function App() {
-  React.useEffect(() => {
+    React.useEffect(() => {
     migrateUpdatesCachesOnce();
+    void notifications.init();  // ADD: permissions + channel + orphan cleanup (no-op on web)
   }, []); // ADD: clear legacy ms_rounds_cache_v1 once
 
     if (SHOW_NOC_DEV) {
