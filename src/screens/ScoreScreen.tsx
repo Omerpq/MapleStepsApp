@@ -18,6 +18,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNoc } from "../hooks/useNoc";
 
 
+import { readAndClearLanguageClbForScore } from "../services/language"; // NEW (S2-02)
+
+
 type FswEducationKey = Parameters<typeof calculateFsw67>[0]["education"];
 
 // ------- FSW warnings (non-blocking, accessible) -------
@@ -89,8 +92,13 @@ export default function ScoreScreen({ navigation: navProp }: Props) {
 
 useEffect(() => {
   const unsubFocus = navigation?.addListener?.("focus", () => {
-    // optionally trigger a recompute/refresh here
-    // runRecalc?.();
+    // Pick up a CLB pushed by the Language Planner (one-shot handoff)
+    (async () => {
+      const handed = await readAndClearLanguageClbForScore();
+      if (handed != null) {
+        setClb(String(handed));
+      }
+    })();
   });
   const unsubBlur = navigation?.addListener?.("blur", () => {});
 
@@ -294,40 +302,44 @@ education,
 
       </View>
       <View style={styles.row}>
-        <Text style={styles.label}>Primary language CLB</Text>
-        <TextInput
-  keyboardType="number-pad"
-  value={clb}
-  onChangeText={setClb}
-  style={styles.input}
-  testID="sc-clb"
-/>
-
-      </View>
-      <View style={styles.row}>
-   <Text style={styles.label}>Education</Text>
-   {/* Outer focus ring for the picker */}
-    <View style={[styles.pickerFocusWrap, eduFocused && styles.pickerFocusWrapActive]}>
-      <View style={styles.pickerContainer}>
-        <Picker<FswEducationKey>
-          selectedValue={education}
-          onValueChange={(v: FswEducationKey) => setEducation(v)}
-          testID="sc-education"
-          style={[
-  styles.pickerBase,
-  Platform.OS === "web" ? ({ outlineStyle: "none", borderWidth: 0, backgroundColor: "transparent" } as any) : null,
-]}
-
-          // add focus handlers; cast to satisfy TS for web
-          {...({ onFocus: () => setEduFocused(true), onBlur: () => setEduFocused(false) } as any)}
-        >
-        {FSW_EDUCATION_OPTIONS.map(o => (
-          <Picker.Item key={o.value} label={o.label} value={o.value} />
-        ))}
-      </Picker>
-      </View>
-    </View>
+  <Text style={styles.label}>Primary language CLB</Text>
+  <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
+    <TextInput
+      keyboardType="number-pad"
+      value={clb}
+      onChangeText={setClb}
+      style={[styles.input, { flex: 1 }]}
+      testID="sc-clb"
+    />
+    <Pressable
+      onPress={() => navigation.navigate("LanguagePlanner" as never)}
+      accessibilityRole="button"
+      style={styles.pillLink}
+      testID="sc-open-language-planner"
+    >
+      <Text style={styles.pillLinkText}>Planner</Text>
+    </Pressable>
   </View>
+</View>
+
+      <View style={styles.row}>
+  <Text style={styles.label}>Education</Text>
+
+  {/* Same structure as QuickCheck: a plain flex container with a bordered box */}
+  <View style={styles.pickerPlain}>
+    <Picker<FswEducationKey>
+      selectedValue={education}
+      onValueChange={(v: FswEducationKey) => setEducation(v)}
+      testID="sc-education"
+      style={Platform.OS === 'android' ? { height: 50 } : undefined}
+    >
+      {FSW_EDUCATION_OPTIONS.map(o => (
+        <Picker.Item key={o.value} label={o.label} value={o.value} />
+      ))}
+    </Picker>
+  </View>
+</View>
+
 
  {/* FSW-67 (demo) */}
  <Text style={styles.h2}>FSW-67 — Eligibility Check</Text>
@@ -512,10 +524,20 @@ const styles = StyleSheet.create({
   content: { padding: 16 },
 
   // Picker outer ring + container
-  pickerFocusWrap: { borderRadius: 8, padding: 2, borderWidth: 0 },                   // becomes 2 when focused
+  pickerFocusWrap: { flex: 1, borderRadius: 8, padding: 2, borderWidth: 0, width: '100%' }, // give it width
   pickerFocusWrapActive: { borderWidth: 2, borderColor: "#2563eb" },                  // blue outer ring
-  pickerContainer: { flex: 1, borderWidth: 1, borderColor: "#ddd", borderRadius: 6, overflow: "hidden" },
-  pickerBase: {},                                                                      // base style; web outline removed inline in JSX
+  pickerContainer: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 6,
+    overflow: "hidden",
+    minHeight: 44,
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+  pickerBase: {},
+  pickerBaseAndroid: { height: 44 },   // NEW
 
   result: { marginTop: 12, fontWeight: "600", color: colors.mapleRed },
 
@@ -534,4 +556,26 @@ const styles = StyleSheet.create({
   addVal: { fontSize: 14, fontWeight: "700" },
 
   breakdown: { marginTop: 8, gap: 2 },
+  pillLink: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    backgroundColor: "#fff",
+  },
+  pillLinkText: { color: colors.mapleRed, fontWeight: "700" },
+
+  pickerPlain: {
+  flex: 1,
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 6,
+  backgroundColor: '#fff',
+  minHeight: 50,
+  paddingVertical: 2,     // avoids visual clipping on some Android fonts
+  justifyContent: 'center',
+  alignItems: 'stretch',
+},
+
 });

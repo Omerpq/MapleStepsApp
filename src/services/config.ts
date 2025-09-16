@@ -10,5 +10,14 @@ export const RULES_CONFIG = {
 
   // NEW (C8)
   nocUrl: "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/noc.2021.json",
-  nocCategoriesUrl: "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/noc.categories.json"
-};
+  nocCategoriesUrl: "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/noc.categories.json",
+} as const;
+
+// ECA guides (Rules repo)
+export const ECA_GUIDES_URL =
+  "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/content/guides/eca.json";
+
+
+// Language guides (Rules repo)
+export const LANGUAGE_GUIDES_URL =
+  "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/content/guides/language.json";

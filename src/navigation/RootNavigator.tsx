@@ -10,9 +10,15 @@ import UpdatesScreen from "../screens/UpdatesScreen";
 import VaultScreen from "../screens/VaultScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import { colors } from "../theme/colors";
+import LanguagePlanner from "../screens/LanguagePlanner";
+
 
 // 👇 dev-only diagnostics screen (hidden from normal users)
 import NocDevScreen from "../dev/NocDevScreen";
+
+// 👇 ADD THESE TWO IMPORTS
+import Paywall from "../screens/Paywall";
+import ECAWizard from "../screens/ECAWizard";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -37,17 +43,39 @@ function Tabs() {
 export default function RootNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* Your normal app */}
-      <Stack.Screen name="MainTabs" component={Tabs} />
+  <Stack.Screen name="MainTabs" component={Tabs} />
 
-      {/* Hidden dev route — only registered in development builds */}
-      {__DEV__ && (
-        <Stack.Screen
-          name="NocDev"
-          component={NocDevScreen}
-          options={{ headerShown: true, title: "NOC Dev Check", presentation: "modal" }}
-        />
-      )}
-    </Stack.Navigator>
+  <Stack.Screen
+    name="Paywall"
+    component={Paywall}
+    options={{ headerShown: false, presentation: "modal" }}
+  />
+  <Stack.Screen
+    name="ECAWizard"
+    component={ECAWizard}
+    options={{ headerShown: true, title: "ECA Wizard" }}
+  />
+
+  {/* ADD THIS */}
+  <Stack.Screen
+    name="LanguagePlanner"
+    component={LanguagePlanner}
+    options={{ headerShown: true, title: "Language Planner" }}
+  />
+
+  {__DEV__ && (
+    <Stack.Screen
+      name="NocDev"
+      component={NocDevScreen}
+      options={{ headerShown: true, title: "NOC Dev Check", presentation: "modal" }}
+    />
+  )}
+</Stack.Navigator>
+
   );
 }
+<Stack.Screen
+  name="LanguagePlanner"
+  component={LanguagePlanner}
+  options={{ headerShown: true, title: "Language Planner" }}
+/>

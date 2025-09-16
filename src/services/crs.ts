@@ -97,24 +97,32 @@ export async function primeCrsParams(): Promise<any> {
   CRS_LOG && CRS_LOG("prime() start", { baseUrl: !!baseUrl, offline, onLine });
 
   // 1) REMOTE
-  if (fetchUrl) {
+if (fetchUrl) {
+  try {
+    CRS_LOG && CRS_LOG("REMOTE try", { url: fetchUrl });
+
+    const res = await fetchWithTimeout(fetchUrl, undefined, 12000);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const remote = await res.json(); // <-- parse JSON (bug fix)
+
+    cache = remote;                   // <-- store parsed JSON
+    lastSyncedISO = new Date().toISOString();
+    crsCachedAtMs = Date.now();
+    crsSource = "remote";
+
     try {
-      CRS_LOG && CRS_LOG("REMOTE try", { url: fetchUrl });
-const remote = await fetchWithTimeout(fetchUrl, undefined, 12000);
-      cache = remote;
-      lastSyncedISO = new Date().toISOString();
-      crsCachedAtMs = Date.now();
-      crsSource = "remote";
-      __branch = "remote";
-      try { await AsyncStorage.setItem(K_CRS, JSON.stringify({ json: remote, ts: crsCachedAtMs })); } catch { }
-      CRS_LOG && CRS_LOG("REMOTE success", { tookMs: Date.now() - __t0, savedAt: crsCachedAtMs });
-      return cache;
-    } catch (e) {
-      CRS_LOG && CRS_LOG("REMOTE fail -> will try CACHE", { error: String(e) });
-    }
-  } else {
-    CRS_LOG && CRS_LOG("REMOTE skipped", { offline, onLine });
+      await AsyncStorage.setItem(K_CRS, JSON.stringify({ json: remote, ts: crsCachedAtMs })); // <-- save JSON
+    } catch {}
+
+    CRS_LOG && CRS_LOG("REMOTE success", { tookMs: Date.now() - __t0, savedAt: crsCachedAtMs });
+    return cache;
+  } catch (e) {
+    CRS_LOG && CRS_LOG("REMOTE fail -> will try CACHE", { error: String(e) });
   }
+} else {
+  CRS_LOG && CRS_LOG("REMOTE skipped", { offline, onLine });
+}
+
 
   // 2) CACHE
   try {
