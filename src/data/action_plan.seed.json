@@ -5,6 +5,19 @@
   { "title": "Add CRS basic profile (age, education, work years, language placeholders)", "access": "free", "due_offset_days": 1 },
   { "title": "Search NOC 2021 and shortlist 2–3 likely NOC codes", "access": "free", "due_offset_days": 2 },
   { "title": "Confirm TEER level for your shortlisted NOC", "access": "free", "due_offset_days": 3, "depends_on": ["Search NOC 2021 and shortlist 2–3 likely NOC codes"] },
+  {
+  "id": "01_noc_verify_and_capture",
+  "title": "NOC: verify duties and capture evidence",
+  "access": "premium",
+  "due_offset_days": 2,
+  "step": 1,
+  "route": "NOCVerify",
+  "depends_on": [
+    "Search NOC 2021 and shortlist 2–3 likely NOC codes",
+    "Confirm TEER level for your shortlisted NOC"
+  ]
+},
+
   { "title": "Review latest Express Entry rounds (cut-offs & categories)", "access": "free", "due_offset_days": 2 },
   { "title": "Review current IRCC fees and budget snapshot", "access": "free", "due_offset_days": 2 },
 
@@ -46,7 +59,14 @@
   { "title": "Work history — list all jobs with start/end dates", "access": "free", "due_offset_days": 3 },
   { "title": "Pick primary NOC for work experience counting", "access": "premium", "due_offset_days": 6, "depends_on": ["Work history — list all jobs with start/end dates", "Search NOC 2021 and shortlist 2–3 likely NOC codes"] },
   { "title": "Duty match: compare job duties to selected NOC (≥75% alignment)", "access": "premium", "due_offset_days": 9, "depends_on": ["Pick primary NOC for work experience counting"] },
-  { "title": "Reference letter template download & customization", "access": "premium", "due_offset_days": 12, "depends_on": ["Duty match: compare job duties to selected NOC (≥75% alignment)"] },
+  {
+  "title": "Reference letter template download & customization",
+  "access": "premium",
+  "due_offset_days": 12,
+  "route": "NOCVerify",
+  "depends_on": ["Duty match: compare job duties to selected NOC (≥75% alignment)"]
+},
+
   { "title": "Request reference letters from employers", "access": "premium", "due_offset_days": 18, "depends_on": ["Reference letter template download & customization"] },
 
   { "title": "Collect employment proofs (contracts, payslips, tax, bank showing salary)", "access": "premium", "due_offset_days": 25, "depends_on": ["Request reference letters from employers"] },
