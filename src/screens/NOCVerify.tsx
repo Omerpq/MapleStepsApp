@@ -1,8 +1,9 @@
 // src/screens/NOCVerify.tsx
 // add:
-import { resetNocRulesCache, fetchNocFromRules } from "../services/nocRules";
-
-import { fetchNocFromLive } from "../services/nocLive";
+import { formatSourceLabel } from '../services/nocVerify';
+import { forceRefresh } from '../services/nocCache';
+import type { NocItem } from '../services/noc';
+import { getCachedNoc } from '../services/nocCache';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -19,6 +20,8 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { fetchNocFromRules, resetNocRulesCache } from '../services/nocRules';
+import { fetchNocFromLive } from '../services/nocLive';
 
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
@@ -27,6 +30,7 @@ import * as FileSystem from 'expo-file-system';
 import {
   loadState,
   setSelectedNoc,
+  resetState as resetVerifyState,
   toggleDuty,
   setDutyNote,
   computeProgress,
@@ -164,17 +168,21 @@ export default function NOCVerify() {
     startDateISO: '',
   });
 // Reset rules manifest/cache whenever this screen mounts
+// Reset rules manifest/cache + clear any previous verify state when this screen mounts
 useEffect(() => {
-  resetNocRulesCache();
-}, []);
-
-  useEffect(() => {
-    (async () => {
+  (async () => {
+    try {
       const cur = await loadState();
       setState(cur);
+      setSourceLabel(cur?.sourceLabel || ''); // 👈 add this line
+    } catch (e) {
+      console.warn('[NOC_VERIFY] loadState failed:', e);
+    } finally {
       setBusy(false);
-    })();
-  }, []);
+    }
+  })();
+}, []);
+
 
 
   
@@ -184,43 +192,87 @@ const progress = useMemo(() => computeProgress(state?.duties || []), [state?.dut
   const onPickNoc = async (noc: NocBasics) => {
   setBusy(true);
   try {
+    // 0) Prefer cached-live (24h) to keep UI instant and consistent
+try {
+  const cached = await getCachedNoc(String(noc.code));
+  if (cached && !cached.expired) {
+    const p = cached.payload;
+    const kind = (p.source === 'jobbank' || (p.sourceUrl || '').includes('jobbank.gc.ca'))
+      ? 'live-jobbank'
+      : 'live-esdc';
+    const cachedLabel = formatSourceLabel({
+      kind,
+      fetchedAtISO: p.fetchedAtISO,
+      cached: true
+    });
+    const toSaveCached = {
+      code: p.code,
+      title: (noc.title ?? p.title ?? '').trim(),
+      teer: String(p.teer ?? teerFromCode(p.code) ?? ''),
+      mainDuties: p.mainDuties,
+      sourceLabel: cachedLabel,
+    };
+    console.log('[NOC_DEBUG][cached-live]', {
+  code: p.code,
+  fetchedAtISO: p.fetchedAtISO,
+  label: cachedLabel
+});
+
+    const nextCached = await setSelectedNoc(toSaveCached);
+    setState(nextCached);
+    setSourceLabel(cachedLabel);
+    return; // short-circuit; skip Rules if we have fresh cached-live
+  }
+} catch { /* ignore and continue to Rules */ }
+
     // 1) Try Rules-JSON first
     const rules = await fetchNocFromRules(String(noc.code));
+    console.log('[NOC] rules response for', noc.code, rules);
+
     let toSave: NocBasics | null = null;
 
     if (rules && Array.isArray(rules.mainDuties) && rules.mainDuties.length) {
-      toSave = {
-        code: rules.code,
-        title: (noc.title ?? rules.title ?? '').trim(),
-        teer: String(rules.teer ?? teerFromCode(rules.code) ?? ''),
-        mainDuties: rules.mainDuties,
-      };
-      setSourceLabel('Source: Rules snapshot');
+      const rulesLabel = formatSourceLabel({
+  kind: 'rules',
+  snapshotUpdatedAt: (rules as any)?.snapshotUpdatedAt || (rules as any)?.meta?.last_checked
+});
+
+toSave = {
+  code: rules.code,
+  title: (noc.title ?? rules.title ?? '').trim(),
+  teer: String(rules.teer ?? teerFromCode(rules.code) ?? ''),
+  mainDuties: rules.mainDuties,
+  sourceLabel: rulesLabel,
+};
+setSourceLabel(rulesLabel);
+
+
       
     } else {
       // 2) Fallback to live (ESDC/Job Bank)
       try {
         const live = await fetchNocFromLive(String(noc.code));
+const src = String((live as any).source || '');
+const kind = src.includes('jobbank.gc.ca') ? 'live-jobbank' : 'live-esdc';
+const liveLabel = formatSourceLabel({
+  kind,
+  fetchedAtISO: (live as any).fetchedAtISO,
+  cached: !!(live as any).fromCache
+});
+
 toSave = {
   code: live.code,
   title: (noc.title ?? live.title ?? '').trim(),
   teer: String(live.teer ?? teerFromCode(live.code) ?? ''),
   mainDuties: (live as any).mainDuties ?? (live as any).duties ?? [],
+  sourceLabel: liveLabel,
 };
 
-const src = String((live as any).source || ''); // ✅ define src
-setSourceLabel(
-  src.includes('noc.esdc.gc.ca') ? 'Source: ESDC (NOCProfile)'
-  : src.includes('jobbank.gc.ca') ? 'Source: Job Bank'
-  : 'Source: Live'
-);
+setSourceLabel(liveLabel);
 
-        
-        setSourceLabel(
-          src.includes('noc.esdc.gc.ca') ? 'Source: ESDC (NOCProfile)'
-          : src.includes('jobbank.gc.ca') ? 'Source: Job Bank'
-          : 'Source: Live'
-        );
+
+
+      
       } catch {
         // ignore and try local fallback next
       }
@@ -228,8 +280,10 @@ setSourceLabel(
 
     // 3) Final fallback: bundled JSON (ensureMainDuties)
     if (!toSave || !toSave.mainDuties?.length) {
-      toSave = await ensureMainDuties(noc);
-      setSourceLabel('Source: Local (bundled JSON)');
+      toSave = { ...(await ensureMainDuties(noc)), sourceLabel: formatSourceLabel({ kind: 'bundled' }) };
+setSourceLabel(formatSourceLabel({ kind: 'bundled' }));
+
+
       if (!toSave.mainDuties?.length) {
         throw new Error('No duties available from Rules/Live/Local.');
       }
@@ -237,6 +291,8 @@ setSourceLabel(
 
     // 4) Persist + reflect in UI
     const next = await setSelectedNoc(toSave);
+    console.log('[NOC_DEBUG]', { code: toSave.code, usedSource: toSave.sourceLabel || '(none)', duties: (toSave.mainDuties || []).length });
+
 
     if (!next?.duties || next.duties.length === 0) {
       const checks = (toSave.mainDuties || []).map((text, i) => ({
@@ -287,6 +343,42 @@ setSourceLabel(
     }));
     setExportOpen(true);
   };
+// Force-refresh from ESDC: clear 24h live cache, then reload current NOC
+const onRefreshFromESDC = async () => {
+  if (!state?.selectedNocCode) {
+  Alert.alert('Pick NOC first', 'Please select a NOC to refresh.');
+  return;
+}
+try {
+  setBusy(true);
+  // 1) Clear the 24h live cache for this code
+  await forceRefresh(state.selectedNocCode);
+
+  // 2) LIVE-FIRST: fetch from ESDC/JobBank directly (skip Rules here)
+  const live = await fetchNocFromLive(String(state.selectedNocCode));
+  const src = String((live as any).source || '');
+  const kind = src.includes('jobbank.gc.ca') ? 'live-jobbank' : 'live-esdc';
+  const liveLabel = formatSourceLabel({ kind, fetchedAtISO: (live as any).fetchedAtISO });
+
+  const toSave = {
+    code: live.code,
+    title: (state.selectedNocTitle ?? live.title ?? '').trim(),
+    teer: String(live.teer ?? teerFromCode(live.code) ?? ''),
+    mainDuties: (live as any).mainDuties ?? (live as any).duties ?? [],
+    sourceLabel: liveLabel,
+  };
+
+  const next = await setSelectedNoc(toSave);
+  setState(next);
+  setSourceLabel(liveLabel);
+} catch (e: any) {
+  console.warn('[NOC] refresh failed', e);
+  Alert.alert('Refresh failed', String(e?.message || e));
+} finally {
+  setBusy(false);
+}
+
+};
 
   const onExport = async () => {
   if (!state) return;
@@ -382,7 +474,16 @@ setSourceLabel(
     <Text style={styles.sub}>
       {state.selectedNocCode} · {state.selectedNocTitle} {state.selectedNocTeer ? `· ${state.selectedNocTeer}` : ''}
     </Text>
-    {!!sourceLabel && <Text style={styles.src}>{sourceLabel}</Text>}
+    {!!(state?.sourceLabel || sourceLabel) && (
+  <>
+    <Text style={styles.src}>{state?.sourceLabel || sourceLabel}</Text>
+    <Text onPress={onRefreshFromESDC} style={{ marginTop: 4, textDecorationLine: 'underline' }}>
+      Refresh from ESDC
+    </Text>
+  </>
+)}
+
+
   </>
 ) : (
   <Text style={styles.sub}>Pick your NOC to compare duties and capture evidence.</Text>
