@@ -1,0 +1,9 @@
+{ "version":"1.0.0","updated":"2025-07-07T00:00:00Z","thresholds":[
+{"family_size":1,"amount_cad":15263},
+{"family_size":2,"amount_cad":19001},
+{"family_size":3,"amount_cad":23360},
+{"family_size":4,"amount_cad":28362},
+{"family_size":5,"amount_cad":32168},
+{"family_size":6,"amount_cad":36280},
+{"family_size":7,"amount_cad":40392}
+]} 
