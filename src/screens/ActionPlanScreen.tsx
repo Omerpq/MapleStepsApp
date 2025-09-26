@@ -29,23 +29,25 @@ import { __devSetSubscribed } from '../services/payments';
 
 // Wraps rows; on web we render a <div> to avoid nested <button> warnings.
 // We still handle clicks on web via onClick.
+// at top: ensure Pressable is imported from 'react-native'
+
 const RowTouchable: React.FC<{
   disabled?: boolean;
   onPress?: () => void;
   style?: any;
   children: React.ReactNode;
-}> = ({ disabled, onPress, style, children }) => {
-  if (Platform.OS === 'web') {
-    // RNW View supports onClick; keep a11y simple here.
-    // @ts-ignore RNW accepts onClick on View
-    return <View style={style} onClick={disabled ? undefined : onPress}>{children}</View>;
-  }
-  return (
-    <Pressable disabled={disabled} onPress={onPress} style={style}>
-      {children}
-    </Pressable>
-  );
-};
+  accessibilityLabel?: string;
+}> = ({ disabled, onPress, style, children, accessibilityLabel }) => (
+  <Pressable
+    disabled={disabled}
+    onPress={onPress}
+    style={style}
+    accessibilityRole="button"
+    accessibilityLabel={accessibilityLabel}
+  >
+    {children}
+  </Pressable>
+);
 
 
 const seed = rawSeed as unknown as SeedTask[];
@@ -593,10 +595,12 @@ useFocusEffect(
 
       {/* Row body wrapper — div on web, Pressable on native */}
       <RowTouchable
-        style={{ flex: 1 }}
-        disabled={blocked || isEcaChoose} // ECA row is wizard-controlled
-        onPress={() => goToTask(navigation, toCandidate(item), isSubscribed)}
-      >
+  style={{ flex: 1 }}
+  disabled={blocked || isEcaChoose} // ECA row is wizard-controlled
+  onPress={() => goToTask(navigation, toCandidate(item), isSubscribed)}
+  accessibilityLabel={`Open: ${stripPrefix(item.title)}`} // <-- satisfies the test
+>
+
         <Text style={[styles.itemTitle, item.done && styles.itemTitleDone]}>
           {item.title}
         </Text>
