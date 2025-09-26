@@ -3,22 +3,17 @@ import React from "react";
 import { View, Text, ActivityIndicator, Pressable } from "react-native";
 import { useNoc } from "../hooks/useNoc";
 import { RULES_CONFIG } from "../services/config";
-
-
-function hostOf(u: string) {
-  try { return new URL(u).host; } catch {
-    // fallback parse if URL constructor fails
-    return (u || "").replace(/^https?:\/\/(www\.)?/i, "").split("/")[0] || "—";
-  }
-}
+import { hostOf, sourceTitle, tsFrom, fmtDateTimeLocal } from "../utils/freshness";
 
 export default function DataFreshness() {
   const { status, meta, sources, refresh } = useNoc();
 
-  const nocDate = meta?.noc?.last_checked ?? "—";
-  const catDate = meta?.cats?.last_checked ?? "—";
+  const nocCachedAt = (meta?.noc as any)?.__cachedAt ?? null;
+  const catCachedAt = (meta?.cats as any)?.__cachedAt ?? null;
 
-  // Prefer URL embedded in JSON meta; fallback to config URLs
+  const nocWhen = fmtDateTimeLocal(tsFrom(nocCachedAt, meta?.noc));
+  const catWhen = fmtDateTimeLocal(tsFrom(catCachedAt, meta?.cats));
+
   const nocUrl =
     (meta?.noc as any)?.source?.url ||
     (meta?.noc as any)?.source_url ||
@@ -45,23 +40,20 @@ export default function DataFreshness() {
         Data freshness
       </Text>
 
-      <Text style={{ color: "#666" }}>NOC 2021 last checked: {nocDate}</Text>
       <Text style={{ color: "#666" }}>
-        IRCC categories last checked: {catDate}
+        NOC 2021 — {sourceTitle(sources.noc)} • Last synced {nocWhen || "—"}
+      </Text>
+      <Text style={{ color: "#666" }}>
+        IRCC categories — {sourceTitle(sources.cats)} • Last synced {catWhen || "—"}
       </Text>
 
-      {/* Status from hook (remote/cache/local) */}
-      <Text style={{ color: "#666", marginTop: 6 }}>
-        Status: {sources.noc ?? "—"} / {sources.cats ?? "—"} ({status})
-      </Text>
-
-            {/* Sources: show domains in prod; full URLs in dev */}
-      <Text style={{ color: "#999", fontSize: 12, marginTop: 4 }}>
+      <Text style={{ color: "#999", fontSize: 12, marginTop: 6 }}>
         NOC source: {hostOf(nocUrl)}
       </Text>
       <Text style={{ color: "#999", fontSize: 12 }}>
         IRCC source: {hostOf(catsUrl)}
       </Text>
+
       {__DEV__ && (
         <>
           <Text style={{ color: "#bbb", fontSize: 11, marginTop: 2 }} selectable>
@@ -72,7 +64,6 @@ export default function DataFreshness() {
           </Text>
         </>
       )}
-
 
       <View
         style={{

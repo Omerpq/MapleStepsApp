@@ -40,8 +40,10 @@ export function useNoc() {
         if (!alive) return;
         setItems(nRes.data);
         setCats(cRes.data);
-        setMeta({ noc: nRes.meta, cats: cRes.meta });
-        setSources({ noc: nRes.source, cats: cRes.source });
+setMeta({
+          noc: { ...(nRes.meta || {}), __cachedAt: nRes.cachedAt },
+          cats: { ...(cRes.meta || {}), __cachedAt: cRes.cachedAt },
+        });        setSources({ noc: nRes.source, cats: cRes.source });
         setStatus("ready");
       } catch (e: any) {
         if (!alive) return;

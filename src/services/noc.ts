@@ -18,7 +18,9 @@ type CacheEnvelope<T> = {
 // ---------- Cache Keys + Network ----------
 const NOC_CACHE_KEY = "ms_noc_cache_v1";
 const NOC_CAT_CACHE_KEY = "ms_noc_categories_cache_v2";
-const FETCH_MS = 12000;
+// Use a shorter timeout under Jest to avoid test flakiness
+const IS_TEST = typeof process !== "undefined" && !!process.env?.JEST_WORKER_ID;
+const FETCH_MS = IS_TEST ? 1500 : 12000;
 
 // ---------- Small helpers (local copy to keep this file isolated) ----------
 async function readCache<T>(key: string): Promise<CacheEnvelope<T> | null> {

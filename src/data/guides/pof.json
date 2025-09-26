@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "updated": "2025-07-07T00:00:00Z",
+  "thresholds": [
+    { "family_size": 1, "amount_cad": 15263 },
+    { "family_size": 2, "amount_cad": 19001 },
+    { "family_size": 3, "amount_cad": 23360 },
+    { "family_size": 4, "amount_cad": 28362 },
+    { "family_size": 5, "amount_cad": 32168 },
+    { "family_size": 6, "amount_cad": 36280 },
+    { "family_size": 7, "amount_cad": 40392 }
+  ],
+  "fund_types": [
+    { "id": "chequing",       "label": "Chequing account balance",                 "eligible": true,  "notes": "Personal account in your name (or spouse’s)" },
+    { "id": "savings",        "label": "Savings account balance",                  "eligible": true,  "notes": "Personal account in your name (or spouse’s)" },
+    { "id": "fixed_deposit",  "label": "Fixed/term deposit (redeemable)",          "eligible": true,  "notes": "Provide certificate + bank letter" },
+    { "id": "mutual_fund",    "label": "Mutual fund units (cashable)",             "eligible": true,  "notes": "With recent statements and redemption policy" },
+    { "id": "stock",          "label": "Publicly traded stocks",                   "eligible": true,  "notes": "Broker statements; liquid and unencumbered" },
+    { "id": "bond",           "label": "Government/corporate bonds",               "eligible": true,  "notes": "Broker/bank statements" },
+    { "id": "rrsp",           "label": "RRSP",                                     "eligible": true,  "notes": "Liquid portion only; show that funds are accessible" },
+    { "id": "tfsa",           "label": "TFSA",                                     "eligible": true,  "notes": "Liquid portion only" },
+    { "id": "gift",           "label": "Irrevocable gift",                         "eligible": true,  "notes": "Official notarized gift deed; not repayable" },
+    { "id": "crypto",         "label": "Cryptocurrency",                           "eligible": false, "notes": "IRCC does not count crypto as settlement funds" },
+    { "id": "property",       "label": "Property/real estate",                     "eligible": false, "notes": "Not liquid funds" },
+    { "id": "vehicle",        "label": "Vehicles/jewelry",                         "eligible": false, "notes": "Not liquid funds" },
+    { "id": "gold",           "label": "Gold/bullion",                             "eligible": false, "notes": "Not acceptable" },
+    { "id": "borrowed",       "label": "Borrowed funds/loans",                     "eligible": false, "notes": "Not allowed; funds must be unencumbered" }
+  ],
+  "notes": [
+    "If you’re authorized to work in Canada and have a valid job offer, proof of funds may be waived.",
+    "Maintain consistent availability over 6 months; provide official bank letters and statements.",
+    "Amounts are minimums; list your full balance if higher."
+  ]
+}

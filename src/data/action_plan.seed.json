@@ -74,12 +74,23 @@
 
   { "title": "Proof of Funds — calculate family size requirement", "access": "free", "due_offset_days": 4 },
   { "title": "Open/allocate funds to eligible accounts (savings/term deposit)", "access": "premium", "due_offset_days": 10, "depends_on": ["Proof of Funds — calculate family size requirement"] },
-  { "title": "Start 6-month PoF seasoning tracker", "access": "premium", "due_offset_days": 10, "depends_on": ["Open/allocate funds to eligible accounts (savings/term deposit)"] },
+  {
+  "id": "05_pof_tracker",
+  "title": "Proof of Funds: calculate required amount and log last 6 months",
+  "access": "premium",
+  "due_offset_days": 10,
+  "step": 4,
+  "route": "ProofOfFunds",
+  "depends_on": ["Open/allocate funds to eligible accounts (savings/term deposit)"]
+},
+
 
   { "title": "Create IRCC GCKey/Sign-In Partner account", "access": "free", "due_offset_days": 10 },
   { "title": "Create Express Entry profile shell (do not submit yet)", "access": "premium", "due_offset_days": 30, "depends_on": ["Create IRCC GCKey/Sign-In Partner account"] },
-  { "title": "Enter language scores once received", "access": "premium", "due_offset_days": 45, "depends_on": ["Book language test date"] },
-  { "title": "Enter ECA number and results once issued", "access": "premium", "due_offset_days": 60, "depends_on": ["Ship documents to ECA body and record tracking number"] },
+  { "title": "Enter language scores once received", "access": "premium", "due_offset_days": 45, "depends_on": ["04_language_plan_and_book_test"] },
+
+  { "title": "Enter ECA number and results once issued", "access": "premium", "due_offset_days": 60, "depends_on": ["03_eca_ship_docs"] },
+
   { "title": "Validate profile details against passport/IDs", "access": "premium", "due_offset_days": 30, "depends_on": ["Create Express Entry profile shell (do not submit yet)"] },
 
   { "title": "Recompute CRS with actual language & ECA", "access": "free", "due_offset_days": 61, "depends_on": ["Enter language scores once received", "Enter ECA number and results once issued"] },

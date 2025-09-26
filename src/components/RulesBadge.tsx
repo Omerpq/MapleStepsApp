@@ -1,3 +1,4 @@
+// src/components/RulesBadge.tsx
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { colors } from "../theme/colors";
@@ -17,6 +18,8 @@ import {
   getFswCachedAt,
 } from "../services/fsw67";
 
+import { makeMetaLineCompact } from "../utils/freshness";
+
 // ---------- Display helpers ----------
 type RuleSource = "remote" | "cache" | "local";
 
@@ -25,37 +28,6 @@ const STATE_TITLE: Record<RuleSource, string> = {
   cache: "Cache",
   local: "Local",
 };
-
-const fmtTimeHM = (ms?: number | null) =>
-  typeof ms === "number"
-    ? new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-    : "";
-
-const metaLine = (
-  src: "remote" | "cache" | "local",
-  cachedAtMs: number | null,
-  version?: string | null,
-  label?: "CRS" | "FSW"
-) => {
-  const parts: string[] = [];
-  if (label) parts.push(label);
-
-  const hideVer = !version || version === "dev" || version === "unknown";
-  if (!hideVer) parts.push(`v${version}`);
-
-  if (src === "remote") {
-    if (cachedAtMs) parts.push(`fetched ${fmtTimeHM(cachedAtMs)}`);
-  } else if (src === "cache") {
-    if (cachedAtMs) parts.push(`saved ${fmtTimeHM(cachedAtMs)}`);
-  } else {
-    parts.push("bundled"); // local
-  }
-
-  return parts.join(" • ");
-};
-
-
-
 
 // ---------- Component ----------
 export default function RulesBadge() {
@@ -97,20 +69,12 @@ export default function RulesBadge() {
       <View style={styles.row}>
         <View style={tagStyle(crsSource)}>
           <Text style={styles.tagText}>{STATE_TITLE[crsSource]}</Text>
-<Text style={styles.syncText}>
-  <Text style={{ fontWeight: "700" }}>CRS</Text>
-  {metaLine(crsSource, crsAt, rulesVer) ? ` • ${metaLine(crsSource, crsAt, rulesVer)}` : ""}
-</Text>
-
+          <Text style={styles.syncText}>{makeMetaLineCompact("CRS", crsAt)}</Text>
         </View>
 
         <View style={tagStyle(fswSource)}>
           <Text style={styles.tagText}>{STATE_TITLE[fswSource]}</Text>
-<Text style={styles.syncText}>
-  <Text style={{ fontWeight: "700" }}>FSW</Text>
-  {metaLine(fswSource, fswAt, rulesVer) ? ` • ${metaLine(fswSource, fswAt, rulesVer)}` : ""}
-</Text>
-
+          <Text style={styles.syncText}>{makeMetaLineCompact("FSW", fswAt)}</Text>
         </View>
       </View>
     </View>
@@ -140,5 +104,4 @@ const styles = StyleSheet.create({
   },
   tagText: { fontWeight: "700", color: colors.text },
   syncText: { fontSize: 12, color: "#666" },
-
 });

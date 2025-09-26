@@ -1,14 +1,42 @@
+// src/screens/UpdatesScreen.tsx
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Linking, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Linking,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from "react-native";
 import { colors } from "../theme/colors";
-import { loadRounds, loadFees, pickDisplayTime, migrateUpdatesCachesOnce,
-         type LoaderResult, type Round as RoundType, type Fee,
-         isCategoryDraw } from "../services/updates";
+import {
+  loadRounds,
+  loadFees,
+  pickDisplayTime,
+  migrateUpdatesCachesOnce,
+  type LoaderResult,
+  type Round as RoundType,
+  type Fee,
+  isCategoryDraw,
+} from "../services/updates";
+import { loadNoc, loadNocCategories } from "../services/noc";
+import { loadNocManifest, type NocManifest } from "../services/nocRules";
+
+import {
+  primeCrsParams,
+  getCrsSource,
+  getCrsCachedAt,
+} from "../services/crs";
+import {
+  primeFswParams,
+  getFswSource,
+  getFswCachedAt,
+} from "../services/fsw67";
 
 import { RULES_CONFIG } from "../services/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-
+import { sourceTitle, makeNotice, syncQualifier, tsFrom, fmtDateTimeLocal } from "../utils/freshness";
 
 if (__DEV__) {
   console.log("UPDATES_URLS", RULES_CONFIG.roundsUrl, RULES_CONFIG.feesUrl);
@@ -16,9 +44,6 @@ if (__DEV__) {
 
 type Round = RoundType;
 
-
-
-// Helper to only open URLs if they are defined
 const openUrl = async (u?: string) => {
   if (!u) return;
   try {
@@ -30,29 +55,11 @@ const openUrl = async (u?: string) => {
   }
 };
 
-
 const fmtDate = (iso?: string) => {
   if (!iso) return "—";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-};
-
-const fmtAgo = (ts?: number | null) => {
-  if (!ts) return "";
-  const diffMin = Math.max(0, Math.floor((Date.now() - ts) / 60000));
-  const h = Math.floor(diffMin / 60);
-  const m = diffMin % 60;
-  if (h === 0) return `${m}m ago`;
-  if (m === 0) return `${h}h ago`;
-  return `${h}h ${m}m ago`;
-};
-
-const fmtDateTime = (dOrIso: Date | string | undefined) => {
-  if (!dOrIso) return "—";
-  const d = dOrIso instanceof Date ? dOrIso : new Date(dOrIso);
-  if (isNaN(d.getTime())) return String(dOrIso);
-  return d.toLocaleString();
 };
 
 const syncLabel = (meta?: any) =>
@@ -79,83 +86,148 @@ export default function UpdatesScreen() {
   const [feesSrc, setFeesSrc] = useState<"remote"|"cache"|"local">("local");
   const [feesCachedAt, setFeesCachedAt] = useState<number | null>(null);
   const [feesNotice, setFeesNotice] = useState<string | null>(null);
+  
+
+
+    // NOC (rules repo) manifest
+const [nocManifest, setNocManifest] = useState<NocManifest | null>(null);
+const [nocMeta, setNocMeta] = useState<any | null>(null);
+const [nocSrc, setNocSrc] = useState<"remote" | "cache" | "local">("local");
+const [nocCachedAt, setNocCachedAt] = useState<number | null>(null);
 
   // Refreshing
   const [refreshing, setRefreshing] = useState(false);
 
-  
-
-  function buildNotice(kind: "rounds" | "fees", r: any): string {
-  // A4 rule: compute display time via pickDisplayTime
-  const ts = pickDisplayTime(r);
-  const when = ts != null ? new Date(ts).toLocaleString() : "—";
-  const src = r.source === "remote" ? "Remote" : r.source === "cache" ? "Cache" : "Local";
-  return kind === "rounds"
-    ? `Express Entry: ${src} • Last synced ${when}`
-    : `Fees: ${src} • Last synced ${when}`;
-}
-
-
-    function applyRounds(r: LoaderResult<Round[]>) {
+  function applyRounds(r: LoaderResult<Round[]>) {
     setRounds(r.data);
     setRoundsSrc(r.source);
-    setRoundsMeta(r.meta || null); // NEW
-    setRoundsCachedAt(pickDisplayTime(r));
-    setRoundsNotice(buildNotice("rounds", r));
+    setRoundsMeta(r.meta || null);
+    setRoundsCachedAt(tsFrom(r.cachedAt, r.meta));
+    setRoundsNotice(makeNotice("Express Entry", r));
   }
 
-
   function applyFees(f: LoaderResult<Fee[]>) {
-  setFeesList(f.data);
-  setFeesMeta(f.meta || null);
-  setFeesSrc(f.source);
-  setFeesCachedAt(pickDisplayTime(f));
-  setFeesNotice(buildNotice("fees", f));
+    setFeesList(f.data);
+    setFeesMeta(f.meta || null);
+    setFeesSrc(f.source);
+    setFeesCachedAt(tsFrom(f.cachedAt, f.meta));
+    setFeesNotice(makeNotice("Fees", f));
+  }
+  function applyNoc(n: LoaderResult<NocManifest>) {
+  setNocManifest(n.data);
+  setNocSrc(n.source);
+  setNocMeta(n.meta || null);
+  setNocCachedAt(tsFrom(n.cachedAt, n.meta));
 }
-  // --- end helpers --- //
 
   const refresh = async () => {
-  if (refreshing) return;   // prevent double-tap
-  setRefreshing(true);
-  try {
-    const [rRes, fRes] = await Promise.allSettled([loadRounds(), loadFees()]);
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+  const [rRes, fRes, nRes] = await Promise.allSettled([
+    loadRounds(),
+    loadFees(),
+    loadNocManifest(),
+  ]);
 
-    if (rRes.status === "fulfilled") applyRounds(rRes.value as any);
-    else { try { applyRounds(await loadRounds() as any); } catch {} }
+  if (rRes.status === "fulfilled") applyRounds(rRes.value as any);
+  else { try { applyRounds(await loadRounds() as any); } catch {} }
 
-    if (fRes.status === "fulfilled") applyFees(fRes.value as any);
-    else { try { applyFees(await loadFees() as any); } catch {} }
-  } catch (e) {
-    if (__DEV__) console.warn("REFRESH_ERROR", e);
-  } finally {
-    setRefreshing(false);
+  if (fRes.status === "fulfilled") applyFees(fRes.value as any);
+  else { try { applyFees(await loadFees() as any); } catch {} }
+
+  if (nRes.status === "fulfilled") applyNoc(nRes.value as any);
+  else { try { applyNoc(await loadNocManifest() as any); } catch {} }
+} catch (e) {
+  if (__DEV__) console.warn("REFRESH_ERROR", e);} finally {
+    setRefreshing(false); // ← add this back
   }
 };
 
+  // DEV-ONLY: refresh all rule data and report success/failure
+  const refreshAllDev = async () => {
+    if (!__DEV__) return;
+    if (refreshing) return;
+    setRefreshing(true);
+
+    const lines: string[] = [];
+    let ok = 0, total = 0;
+clearIRCCCache
+    const add = (line: string) => lines.push(`• ${line}`);
+    const run = async <T,>(name: string, fn: () => Promise<T>, fmt?: (x: T) => string) => {
+      total++;
+      try {
+        const res = await fn();
+        const extra = fmt ? ` — ${fmt(res)}` : "";
+        add(`${name}: ok${extra}`);
+        ok++;
+      } catch (e: any) {
+        add(`${name}: failed (${e?.message || "error"})`);
+      }
+    };
+const clearNocCache = async () => {
+  await AsyncStorage.removeItem("ms_noc_manifest_v3");
+  // Re-fetch NOC manifest right away
+  try {
+    const n = await loadNocManifest();
+    applyNoc(n as any);
+  } catch {}
+  Alert.alert("NOC cache", "Cleared and reloaded.");
+};
+
+    await run("Rounds", async () => {
+      const r = await loadRounds();
+      applyRounds(r);
+      return r;
+    }, (r: any) => `${sourceTitle(r.source)}${syncQualifier(r.meta) ? ` • ${syncQualifier(r.meta)}` : ""}`);
+
+    await run("Fees", async () => {
+      const f = await loadFees();
+      applyFees(f);
+      return f;
+    }, (r: any) => `${sourceTitle(r.source)}${syncQualifier(r.meta) ? ` • ${syncQualifier(r.meta)}` : ""}`);
+
+    await run("NOC", () => loadNoc(), (r: any) => sourceTitle(r.source));
+    await run("Categories", () => loadNocCategories(), (r: any) => sourceTitle(r.source));
+
+    await run("CRS params", async () => { await primeCrsParams(); return { s: getCrsSource(), t: getCrsCachedAt() }; },
+      (r: any) => sourceTitle(r.s));
+
+    await run("FSW-67 params", async () => { await primeFswParams(); return { s: getFswSource(), t: getFswCachedAt() }; },
+      (r: any) => sourceTitle(r.s));
+
+    setRefreshing(false);
+    Alert.alert("Refresh all", `${ok}/${total} succeeded\n\n${lines.join("\n")}`);
+  };
 
   useEffect(() => {
     (async () => {
       await migrateUpdatesCachesOnce();
-
       try {
-        const [r, f] = await Promise.all([loadRounds(), loadFees()]);
-        applyRounds(r as any);
-        applyFees(f as any);
-      } catch {
-        try { applyRounds(await loadRounds() as any); } catch {}
-        try { applyFees(await loadFees() as any); } catch {}
-      }
+  const [r, f, n] = await Promise.all([
+    loadRounds(),
+    loadFees(),
+    loadNocManifest(),
+  ]);
+  applyRounds(r as any);
+  applyFees(f as any);
+  applyNoc(n as any);
+} catch {
+  try { applyRounds(await loadRounds() as any); } catch {}
+  try { applyFees(await loadFees() as any); } catch {}
+  try { applyNoc(await loadNocManifest() as any); } catch {}
+}
+
     })();
   }, []);
 
   const latest = rounds && rounds.length ? rounds[0] : null;
   const showCategoryHint = isCategoryDraw(latest?.category);
 
-
   const clearCache = async () => {
     await AsyncStorage.removeItem("ms_rounds_cache_v2");
     await AsyncStorage.removeItem("ms_fees_cache_v1");
-    await refresh(); // re-load to show local/remote right away
+    await refresh();
   };
 
   const clearIRCCCache = async () => {
@@ -164,63 +236,60 @@ export default function UpdatesScreen() {
     console.log("IRCC cache cleared");
   };
 
-
-const logCache = async () => {
-  if (!__DEV__) return; // dev-only
-
-  const [r, f] = await Promise.all([
-    AsyncStorage.getItem("ms_rounds_cache_v2"),
-    AsyncStorage.getItem("ms_fees_cache_v1"),
-  ]);
-
-  console.log(
-    "CACHE_DEBUG rounds:", r ? "present" : "missing",
-    "fees:",             f ? "present" : "missing"
-  );
-
-  try {
-    const rr = r ? JSON.parse(r) : null; // { savedAt, meta, data }
-    const ff = f ? JSON.parse(f) : null;
-
-    if (rr) console.log("CACHE_DEBUG rounds.savedAt:", rr.savedAt, "last_checked:", rr.meta?.last_checked);
-    if (ff) console.log("CACHE_DEBUG  fees.savedAt:", ff.savedAt, "last_checked:", ff.meta?.last_checked);
-  } catch (e) {
-    console.warn("CACHE_DEBUG parse error:", e);
-  }
+  const clearNocCache = async () => {
+  await AsyncStorage.removeItem("ms_noc_manifest_v1");
+  console.log("NOC manifest cache cleared");
 };
 
-const clearUpdatesCaches = async () => {
-  if (!__DEV__) return; // dev-only
-  await AsyncStorage.multiRemove([
-    "ms_rounds_cache_v2",
-    "ms_fees_cache_v1",
-  ]);
-  console.log("CACHE_DEBUG cleared: ms_rounds_cache_v2, ms_fees_cache_v1");
-};
+  const logCache = async () => {
+    {__DEV__ && (
+  <TouchableOpacity onPress={clearNocCache} style={{ marginBottom: 12 }}>
+    <Text style={{ color: "violet" }}>🗑 Clear NOC cache</Text>
+  </TouchableOpacity>
+)}
 
-
-    const refreshFeesOnly = async () => {
-    const f = await loadFees();
-    applyFees(f as any);
+    if (!__DEV__) return;
+    const [r, f] = await Promise.all([
+      AsyncStorage.getItem("ms_rounds_cache_v2"),
+      AsyncStorage.getItem("ms_fees_cache_v1"),
+    ]);
+    console.log(
+      "CACHE_DEBUG rounds:", r ? "present" : "missing",
+      "fees:",             f ? "present" : "missing"
+    );
+    try {
+      const rr = r ? JSON.parse(r) : null; // { savedAt, meta, data }
+      const ff = f ? JSON.parse(f) : null;
+      if (rr) console.log("CACHE_DEBUG rounds.savedAt:", rr.savedAt, "last_checked:", rr.meta?.last_checked);
+      if (ff) console.log("CACHE_DEBUG  fees.savedAt:", ff.savedAt, "last_checked:", ff.meta?.last_checked);
+    } catch (e) {
+      console.warn("CACHE_DEBUG parse error:", e);
+    }
   };
 
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={{ paddingBottom: 24 }}>
-      <TouchableOpacity
-  onPress={refresh}
-  disabled={refreshing}
-  accessibilityState={{ disabled: refreshing }}
-  style={[styles.refreshBtn, refreshing && { opacity: 0.5 }]}
->
-  <Text style={styles.refreshText}>
-    {refreshing ? "Refreshing…" : "Check for updates ↻"}
-  </Text>
-</TouchableOpacity>
+      <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 12 }}>
+        <TouchableOpacity
+          onPress={refresh}
+          disabled={refreshing}
+          accessibilityState={{ disabled: refreshing }}
+          style={[styles.refreshBtn, refreshing && { opacity: 0.5 }]}
+        >
+          <Text style={styles.refreshText}>
+            {refreshing ? "Refreshing…" : "Check for updates ↻"}
+          </Text>
+        </TouchableOpacity>
 
+        {__DEV__ && (
+          <TouchableOpacity onPress={refreshAllDev} style={styles.refreshBtn}>
+            <Text style={styles.refreshText}>🧪 Refresh all</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {(roundsSrc !== "remote" || feesSrc !== "remote") && (
         <View style={styles.notice}>
-          {/* Draws notice */}
           {roundsSrc !== "remote" && (
             <Text style={styles.noticeText}>
               Draws: {roundsSrc === "local"
@@ -229,26 +298,21 @@ const clearUpdatesCaches = async () => {
               {(() => {
                 const ts = typeof roundsCachedAt === "number" ? roundsCachedAt : null;
                 return ts
-                  ? ` • System was last available at ${fmtDateTime(new Date(ts))} (${fmtAgo(ts)})`
+                  ? ` • System was last available at ${fmtDateTimeLocal(ts)}`
                   : "";
               })()}
             </Text>
           )}
 
-          {/* Fees notice */}
           {feesSrc !== "remote" && (
             <Text style={styles.noticeText}>
               Fees: {feesSrc === "local"
                 ? "Live data not available. The data being shown might not be correct."
                 : "Showing last available data saved on this device."}
               {(() => {
-  const ts = typeof feesCachedAt === "number" ? feesCachedAt : null;
-  return ts
-    ? ` • System was last available at ${fmtDateTime(new Date(ts))} (${fmtAgo(ts)})`
-    : "";
-})()}
-
-
+                const ts = typeof feesCachedAt === "number" ? feesCachedAt : null;
+                return ts ? ` • System was last available at ${fmtDateTimeLocal(ts)}` : "";
+              })()}
             </Text>
           )}
         </View>
@@ -260,8 +324,7 @@ const clearUpdatesCaches = async () => {
         {latest ? (
           <>
             <Text style={[styles.meta, { opacity: 0.8 }]}>
-                            Source: {roundsSrc} {roundsSrc === "cache" ? "(last good remote)" : roundsSrc === "local" ? "(bundled fallback)" : ""}{syncLabel(roundsMeta) && ` • ${syncLabel(roundsMeta)}`}
-
+              Source: {roundsSrc} {roundsSrc === "cache" ? "(last good remote)" : roundsSrc === "local" ? "(bundled fallback)" : ""}{syncLabel(roundsMeta) && ` • ${syncLabel(roundsMeta)}`}
             </Text>
 
             <Text style={styles.meta}>Date: {fmtDate(latest.date)}</Text>
@@ -319,22 +382,72 @@ const clearUpdatesCaches = async () => {
           <Text style={styles.meta}>No fees data.</Text>
         )}
       </View>
+{/* NOC 2021 Coverage */}
+<View style={styles.card}>
+  <Text style={styles.title}>NOC 2021 Coverage</Text>
+
+  <Text style={[styles.meta, { opacity: 0.8 }]}>
+    Source: {nocSrc}
+    {nocSrc === "cache" ? " (last good remote)" :
+     nocSrc === "local" ? " (bundled fallback)" : ""}
+    {nocMeta?.last_checked ? ` • Last checked: ${fmtDate(nocMeta.last_checked)}` : ""}
+  </Text>
+
+  {nocManifest ? (
+    <>
+      <Text style={styles.meta}>Codes available: {nocManifest.count}</Text>
+
+      {nocMeta?.source_url ? (
+        <TouchableOpacity onPress={() => openUrl(nocMeta.source_url)}>
+          <Text style={styles.link}>View manifest ↗</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {nocManifest.codes?.length ? (
+        <Text style={[styles.meta, { opacity: 0.7 }]}>
+          Sample: {nocManifest.codes.slice(0, 8).join(", ")}
+        </Text>
+      ) : null}
+
+      <Text style={styles.source}>source: {nocSrc}</Text>
+    </>
+  ) : (
+    <Text style={styles.meta}>No NOC manifest data.</Text>
+  )}
+</View>
+
+      {__DEV__ && (
+        <TouchableOpacity onPress={logCache} style={{ marginBottom: 12 }}>
+          <Text style={{ color: "cyan" }}>🧪 Log cache status</Text>
+        </TouchableOpacity>
+      )}
+      
+      {__DEV__ && (
+  <TouchableOpacity onPress={clearNocCache} style={{ marginBottom: 12 }}>
+    <Text style={{ color: "violet" }}>🗑 Clear NOC cache</Text>
+  </TouchableOpacity>
+)}
 
 
       {__DEV__ && (
-  <TouchableOpacity onPress={logCache} style={{ marginBottom: 12 }}>
-    <Text style={{ color: "cyan" }}>🧪 Log cache status</Text>
-  </TouchableOpacity>
-)}
-      {__DEV__ && (
-  <TouchableOpacity onPress={clearIRCCCache} style={{ marginBottom: 12 }}>
-    <Text style={{ color: "orange" }}>🗑 Clear IRCC cache</Text>
-  </TouchableOpacity>
-)}
-
+        <TouchableOpacity onPress={clearIRCCCache} style={{ marginBottom: 12 }}>
+          <Text style={{ color: "orange" }}>🗑 Clear IRCC cache</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }
+{__DEV__ && (
+  <TouchableOpacity
+    onPress={async () => {
+      await AsyncStorage.removeItem("ms_noc_manifest_v4");
+      console.log("NOC manifest cache cleared");
+    }}
+    style={{ marginBottom: 12 }}
+  >
+    <Text style={{ color: "violet" }}>🗑 Clear NOC manifest cache</Text>
+  </TouchableOpacity>
+)}
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, padding: 16, backgroundColor: colors.background },

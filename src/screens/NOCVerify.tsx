@@ -135,7 +135,7 @@ async function ensureMainDuties(noc: NocBasics): Promise<NocBasics> {
     if (duties.length === 0 && DUTY_FALLBACKS[code5]?.length) {
   duties = DUTY_FALLBACKS[code5];
 }
-console.log('[NOC] using duties for', code5, duties.slice(0, 3));
+
 
 
     const teer =
@@ -190,7 +190,65 @@ const progress = useMemo(() => computeProgress(state?.duties || []), [state?.dut
 
   // --- Handlers ---
   const onPickNoc = async (noc: NocBasics) => {
-  setBusy(true);
+    if (busy) return;          // prevent double-invokes while a load is in flight
+setBusy(true);    
+// 0a) Offline fast-path: prefer cached-live (even stale), else bundled
+const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+if (isOffline) {
+  try {
+    const cached = await getCachedNoc(String(noc.code));
+    if (cached?.payload) {
+      const p = cached.payload;
+      const kind = (p.source === 'jobbank' || (p.sourceUrl || '').includes('jobbank.gc.ca'))
+        ? 'live-jobbank'
+        : 'live-esdc';
+      const cachedLabel = formatSourceLabel({
+        kind,
+        fetchedAtISO: p.fetchedAtISO,
+        cached: true
+      }) + (cached.expired ? ' (stale)' : '');
+
+      const toSaveOffline: NocBasics = {
+        code: p.code,
+        title: (noc.title ?? p.title ?? '').trim(),
+        teer: String(p.teer ?? teerFromCode(p.code) ?? ''),
+        mainDuties: p.mainDuties || [],
+        sourceLabel: cachedLabel,
+      };
+
+      setSourceLabel(cachedLabel);
+      const next = await setSelectedNoc(toSaveOffline);
+      setState(next);
+      setBusy(false);
+      setPickerOpen(false);
+      return;
+    }
+  } catch { /* ignore and try bundled next */ }
+
+  // Bundled fallback
+  const bundled = await ensureMainDuties(noc);
+  const hasDuties = Array.isArray(bundled.mainDuties) && bundled.mainDuties.length > 0;
+  const label = hasDuties
+    ? formatSourceLabel({ kind: 'bundled' })
+    : 'Source: Bundled data (offline; duties unavailable)';
+
+  const toSaveOffline: NocBasics = {
+    code: bundled.code,
+    title: (noc.title ?? bundled.title ?? '').trim(),
+    teer: String(bundled.teer ?? teerFromCode(bundled.code) ?? ''),
+    mainDuties: bundled.mainDuties || [],
+    sourceLabel: label,
+  };
+
+  setSourceLabel(label);
+  const next = await setSelectedNoc(toSaveOffline);
+  setState(next);
+  setBusy(false);
+  setPickerOpen(false);
+  return; // IMPORTANT: do not proceed to remote fetches
+}
+
+         // move setBusy to the top so early exits don’t race
   try {
     // 0) Prefer cached-live (24h) to keep UI instant and consistent
 try {
@@ -221,6 +279,8 @@ try {
     const nextCached = await setSelectedNoc(toSaveCached);
     setState(nextCached);
     setSourceLabel(cachedLabel);
+    return; // stop here; skip Rules and Live
+
     return; // short-circuit; skip Rules if we have fresh cached-live
   }
 } catch { /* ignore and continue to Rules */ }
@@ -285,6 +345,40 @@ setSourceLabel(formatSourceLabel({ kind: 'bundled' }));
 
 
       if (!toSave.mainDuties?.length) {
+        // Rescue: last chance — if network paths failed and bundled is empty,
+// try ANY cached-live payload (even expired) so offline still works.
+if (!toSave || !toSave.mainDuties?.length) {
+  try {
+    const cachedAny = await getCachedNoc(String(noc.code));
+    if (cachedAny?.payload?.mainDuties?.length) {
+      const p = cachedAny.payload;
+      const kind =
+        (p.source === 'jobbank' || (p.sourceUrl || '').includes('jobbank.gc.ca'))
+          ? 'live-jobbank'
+          : 'live-esdc';
+      const cachedLabel =
+        formatSourceLabel({ kind, fetchedAtISO: p.fetchedAtISO, cached: true }) +
+        (cachedAny.expired ? ' (stale)' : '');
+
+      toSave = {
+        code: p.code,
+        title: (noc.title ?? p.title ?? '').trim(),
+        teer: String(p.teer ?? teerFromCode(p.code) ?? ''),
+        mainDuties: p.mainDuties,
+        sourceLabel: cachedLabel,
+      };
+
+      setSourceLabel(cachedLabel);
+    }
+  } catch {
+    // ignore and proceed to throw
+  }
+}
+
+if (!toSave || !toSave.mainDuties?.length) {
+  throw new Error('No duties available from Rules/Live/Local.');
+}
+
         throw new Error('No duties available from Rules/Live/Local.');
       }
     }
@@ -601,6 +695,7 @@ try {
     if (!item) return;
     // TEER & duties will be hydrated from nocDb inside ensureMainDuties(...)
     await onPickNoc({
+      
       code: String(item.code),
       title: String(item.title),
       teer: undefined,
