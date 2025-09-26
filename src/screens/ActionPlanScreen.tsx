@@ -27,27 +27,70 @@ import { getPersistedState } from '../services/payments';
 import { __devSetSubscribed } from '../services/payments';
 
 
+
 // Wraps rows; on web we render a <div> to avoid nested <button> warnings.
 // We still handle clicks on web via onClick.
 // at top: ensure Pressable is imported from 'react-native'
 
-const RowTouchable: React.FC<{
+type RowTouchableProps = {
   disabled?: boolean;
   onPress?: () => void;
+  accessibilityLabel?: string;
   style?: any;
   children: React.ReactNode;
-  accessibilityLabel?: string;
-}> = ({ disabled, onPress, style, children, accessibilityLabel }) => (
-  <Pressable
-    disabled={disabled}
-    onPress={onPress}
-    style={style}
-    accessibilityRole="button"
-    accessibilityLabel={accessibilityLabel}
-  >
-    {children}
-  </Pressable>
-);
+};
+
+const RowTouchable: React.FC<RowTouchableProps> = ({
+  disabled,
+  onPress,
+  accessibilityLabel,
+  style,
+  children,
+}) => {
+  if (Platform.OS === "web") {
+    const handleKeyDown = (e: any) => {
+      if (!disabled && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault?.();
+        onPress?.();
+      }
+    };
+
+    // NOTE: Cast web-only props so TS doesn’t complain on RN types
+    const webOnlyProps = {
+      onClick: disabled ? undefined : onPress,
+      onKeyDown: handleKeyDown,
+      role: "button",
+      tabIndex: disabled ? -1 : 0,
+      "aria-disabled": disabled ? "true" : "false",
+      "aria-label": accessibilityLabel,
+    } as any;
+
+    return (
+      <View
+        {...webOnlyProps}
+        style={style}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+      >
+        {children}
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      disabled={!!disabled}
+      onPress={onPress}
+      style={style}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+    >
+      {children}
+    </Pressable>
+  );
+};
+
+
 
 
 const seed = rawSeed as unknown as SeedTask[];
