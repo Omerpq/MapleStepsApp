@@ -1,0 +1,53 @@
+{
+  "version": "1.0.0",
+  "updated": "2025-09-14T00:00:00.000Z",
+  "bodies": [
+    {
+      "id": "wes",
+      "name": "WES",
+      "link": "https://www.wes.org/ca/",
+      "notes": "Most common for Pakistani degrees; arrange transcripts directly from university to WES.",
+      "items": [
+        { "id": "create_account", "title": "Create WES account", "default_offset_days": 0 },
+        { "id": "degree_scans", "title": "Scan degree/diploma + translations (if any)" },
+        { "id": "request_transcripts", "title": "Request sealed transcripts from university", "default_offset_days": 7 },
+        { "id": "ship_docs", "title": "Ship required documents (if applicable)" },
+        { "id": "track_status", "title": "Track application status until final ECA" }
+      ]
+    },
+    {
+      "id": "iqas",
+      "name": "IQAS",
+      "link": "https://www.alberta.ca/iqas-immigration",
+      "items": [
+        { "id": "create_account", "title": "Create IQAS account" },
+        { "id": "document_check", "title": "Check country-specific document rules" },
+        { "id": "transcripts", "title": "Arrange transcripts to be sent to IQAS" },
+        { "id": "payment", "title": "Submit payment and application" },
+        { "id": "track_status", "title": "Track application status until final ECA" }
+      ]
+    },
+    {
+      "id": "ces",
+      "name": "CES (U of T)",
+      "link": "https://learn.utoronto.ca/ces",
+      "items": [
+        { "id": "create_account", "title": "Create CES account" },
+        { "id": "docs_prep", "title": "Prepare & upload/ship required documents" },
+        { "id": "transcripts", "title": "Arrange transcripts to CES" },
+        { "id": "track_status", "title": "Track application status until final ECA" }
+      ]
+    },
+    {
+      "id": "bcit_ices",
+      "name": "ICES (BCIT)",
+      "link": "https://www.bcit.ca/ices/",
+      "items": [
+        { "id": "create_account", "title": "Create ICES account" },
+        { "id": "docs_prep", "title": "Prepare documents per checklist" },
+        { "id": "transcripts", "title": "Arrange transcripts to ICES" },
+        { "id": "track_status", "title": "Track application status until final ECA" }
+      ]
+    }
+  ]
+}

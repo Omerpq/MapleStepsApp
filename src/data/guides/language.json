@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "updated": "2025-09-15T00:00:00Z",
+  "tests": [
+    { "id": "ielts", "name": "IELTS" },
+    { "id": "celpip", "name": "CELPIP" },
+    { "id": "tef", "name": "TEF" },
+    { "id": "tcf", "name": "TCF" }
+  ],
+  "prep_tips": {
+    "reading": [
+      "Read 2 news articles daily and summarize key points in 3 bullets.",
+      "Practice skimming/scanning with 20-minute timed passages.",
+      "Build a personal glossary of 10 new words per day."
+    ],
+    "listening": [
+      "Listen to one 10-minute academic talk; write a 5-sentence summary.",
+      "Shadow native audio for 5 minutes focusing on rhythm/intonation.",
+      "Do one timed Section 1/2 practice with note-taking."
+    ],
+    "writing": [
+      "Task 1: describe a chart in 20 minutes; swap verbs to avoid repetition.",
+      "Task 2: write a 250-word essay; check topic sentences and cohesion.",
+      "Use a 4-part checklist: idea → structure → grammar → review."
+    ],
+    "speaking": [
+      "Record a 2-minute talk on a cue card; replay and note fillers.",
+      "Daily Q&A: answer 5 common interview questions out loud.",
+      "Pair practice: alternate between examiner and candidate roles."
+    ],
+    "mixed": [
+      "Mock mini-test: 30 minutes rotating R/L/W/S micro-tasks.",
+      "Error log review: pick 3 mistakes from the week and fix them."
+    ]
+  }
+}
