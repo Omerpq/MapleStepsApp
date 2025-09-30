@@ -25,6 +25,9 @@ import { runOptimizer } from "../services/crsOptimizer";
 import { computeProximity } from "../services/draws";
 import CRSOptimizerCard from "../components/CRSOptimizerCard";
 import DrawProximityCard from "../components/DrawProximityCard";
+import WhatIfCLBCard from "../components/WhatIfCLBCard";
+
+
 
 type FswEducationKey = Parameters<typeof calculateFsw67>[0]["education"];
 
@@ -559,17 +562,30 @@ education,
 
       <View style={{ height: 16 }} />
 
+    {/* S3-02 — What-if slider (CLB) */}
+<View style={{ marginTop: 16 }}>
+  <WhatIfCLBCard
+    age={Number(age) || 0}
+    educationAny={education as any}
+    extras={extras}
+    currentCLB={Number(clb) || 0}
+    currentTotal={calculateCrs({ age: Number(age) || 0, clb: Number(clb) || 0, education: education as any }) + additionalCRS}
+  />
+</View>
+
+
+
     {/* S3-02 — CRS Optimizer */}
-{opt && (
-  <View style={{ marginTop: 16 }}>
-    <CRSOptimizerCard
-      base={opt.base}
-      additional={opt.additional}
-      total={opt.total}
-      suggestions={opt.suggestions}
-    />
-  </View>
-)}
+      {opt && (
+        <View style={{ marginTop: 16 }}>
+          <CRSOptimizerCard
+            base={opt.base}
+            additional={opt.additional}
+            total={opt.total}
+            suggestions={opt.suggestions}
+          />
+        </View>
+      )}
 
 {/* S3-02 — Draw Proximity */}
 {prox && (
