@@ -20,6 +20,11 @@ import { useNoc } from "../hooks/useNoc";
 
 import { readAndClearLanguageClbForScore } from "../services/language"; // NEW (S2-02)
 
+// S3-02 (CRS Optimizer + Draw Proximity)
+import { runOptimizer } from "../services/crsOptimizer";
+import { computeProximity } from "../services/draws";
+import CRSOptimizerCard from "../components/CRSOptimizerCard";
+import DrawProximityCard from "../components/DrawProximityCard";
 
 type FswEducationKey = Parameters<typeof calculateFsw67>[0]["education"];
 
@@ -123,8 +128,25 @@ const nocCats = useMemo(
   () => (noc?.code ? categories.filter((c) => c.noc_codes.includes(noc.code)) : []),
   [categories, noc?.code]
 );
+// S3-02 state
+const [opt, setOpt] = useState<{
+  base: number; additional: number; total: number;
+  suggestions: { id: string; title: string; estGain: number; details: string }[];
+} | null>(null);
+
+const [prox, setProx] = useState<{
+  freshness: { source: "remote" | "cache" | "local"; cachedAt: number | null; meta?: any };
+  items: { label: string; cutoff: number; delta: number; date?: string; sourceUrl?: string }[];
+} | null>(null);
 
   
+
+
+
+
+
+
+
 // Save whenever NOC changes
 useEffect(() => {
   (async () => {
@@ -163,6 +185,41 @@ useEffect(() => {
   const [extras, setExtras] = useState<CRSAdditionalInputs>(loadCRSSessionExtras());
   useEffect(() => { saveCRSSessionExtras(extras); }, [extras]);
   const additionalCRS = computeAdditionalCRS(extras);
+
+  // S3-02 — compute Optimizer + Draw Proximity whenever inputs change
+useEffect(() => {
+  // Map screen fields → numbers the calculators expect
+  const AGE = Number(age) || 0;
+  const PRIMARY_CLB = Number(clb) || 0;
+  const EDUCATION_ANY = education as any;
+
+
+  // Use your existing calculators (already imported in this file)
+  const baseNow = calculateCrs({ age: AGE, clb: PRIMARY_CLB, education: EDUCATION_ANY });
+  const addNow  = computeAdditionalCRS(extras);
+  const totalNow = baseNow + addNow;
+
+  // 1) Optimizer — inject your calculators
+  const result = runOptimizer(
+    { age: AGE, clb: PRIMARY_CLB, education: EDUCATION_ANY, extras },
+    {
+      crsCore: ({ age, clb, education }) => calculateCrs({ age, clb, education: education as any }),
+      additional: (x) => computeAdditionalCRS(x),
+    }
+  );
+  setOpt(result);
+
+  // 2) Draw proximity — uses your rounds loader under the hood
+  computeProximity(totalNow)
+    .then((r) => {
+      setProx({
+        freshness: { source: r.rounds.source, cachedAt: r.rounds.cachedAt ?? null, meta: r.rounds.meta },
+        items: r.items,
+      });
+    })
+    .catch(() => setProx(null));
+}, [age, clb, education, extras]);
+
 
   // FSW-67 inputs
   const [fswYears, setFswYears] = useState("3");
@@ -502,11 +559,31 @@ education,
 
       <View style={{ height: 16 }} />
 
-      
+    {/* S3-02 — CRS Optimizer */}
+{opt && (
+  <View style={{ marginTop: 16 }}>
+    <CRSOptimizerCard
+      base={opt.base}
+      additional={opt.additional}
+      total={opt.total}
+      suggestions={opt.suggestions}
+    />
+  </View>
+)}
+
+{/* S3-02 — Draw Proximity */}
+{prox && (
+  <View style={{ marginTop: 12 }}>
+    <DrawProximityCard freshness={prox.freshness} items={prox.items} />
+  </View>
+)}
+  
       </ScrollView>
 </KeyboardAvoidingView>
 
   );
+
+  
 }
 
 const styles = StyleSheet.create({
