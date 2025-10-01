@@ -1,13 +1,14 @@
 // src/screens/EEProfileChecklist.tsx
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { View, Text, Pressable, ActivityIndicator, ScrollView } from "react-native";
+
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { colors } from "../theme/colors";
 import { getEEChecklist, EECheck, applyFix, getEEDebugSnapshot } from "../services/eeProfile";
 import * as Clipboard from "expo-clipboard";
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert, Platform } from 'react-native';
+
+import { View, Text, Pressable, ActivityIndicator, ScrollView, Alert, Platform } from "react-native";
 
 
 function Pill({ label, tone = "default" }: { label: string; tone?: "danger" | "warn" | "ok" | "default" }) {
@@ -276,3 +277,4 @@ const [lastRunAt, setLastRunAt] = useState<Date | null>(null);
     </View>
   );
 }
+
