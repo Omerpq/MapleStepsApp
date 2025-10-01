@@ -107,6 +107,7 @@ export default function EEProfileChecklist() {
   // DEV debug panel state (must be INSIDE the component)
   const [showDebug, setShowDebug] = useState(false);
   const [debugText, setDebugText] = useState<string>("");
+  const [lastRunAt, setLastRunAt] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
   setLoading(true);
@@ -145,7 +146,6 @@ export default function EEProfileChecklist() {
     }
     return { errors, warns, oks, infos };
   }, [checks]);
-const [lastRunAt, setLastRunAt] = useState<Date | null>(null);
 
   const onFix = useCallback(async (item: EECheck) => {
     if (!item.fix) return;
@@ -277,4 +277,5 @@ const [lastRunAt, setLastRunAt] = useState<Date | null>(null);
     </View>
   );
 }
+
 
