@@ -15,6 +15,8 @@ import NOCVerify from "../screens/NOCVerify";
 
 import ProofOfFunds from "../screens/ProofOfFunds";
 
+import PNPMapper from "../screens/PNPMapper";
+
 
 // 👇 dev-only diagnostics screen (hidden from normal users)
 import NocDevScreen from "../dev/NocDevScreen";
@@ -81,6 +83,12 @@ export default function RootNavigator() {
         component={ProofOfFunds}
         options={{ title: "Proof of Funds" }}
       />
+      <Stack.Screen
+        name="PNPMapper"
+        component={PNPMapper}
+        options={{ title: "PNP Mapper" }}
+      />
+
 
       {__DEV__ && (
         <Stack.Screen

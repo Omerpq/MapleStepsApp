@@ -16,8 +16,6 @@ import NocBadge from "../components/NocBadge"; // adjust to "@/components/NocBad
 import NocPicker from "../components/NocPicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNoc } from "../hooks/useNoc";
-
-
 import { readAndClearLanguageClbForScore } from "../services/language"; // NEW (S2-02)
 
 // S3-02 (CRS Optimizer + Draw Proximity)
@@ -26,6 +24,7 @@ import { computeProximity } from "../services/draws";
 import CRSOptimizerCard from "../components/CRSOptimizerCard";
 import DrawProximityCard from "../components/DrawProximityCard";
 import WhatIfCLBCard from "../components/WhatIfCLBCard";
+
 
 
 
@@ -77,6 +76,18 @@ const FswWarnings: React.FC<FswWarningsProps> = ({ showEca, showPof }) => {
     </View>
   );
 };
+
+const blurActiveElementWeb = () => {
+  if (Platform.OS === 'web') {
+    try {
+      const el = document.activeElement as HTMLElement | null;
+      if (el && typeof el.blur === 'function') el.blur();
+    } catch { /* no-op */ }
+  }
+};
+
+
+
 
 const warnStyles = StyleSheet.create({
   wrap: { marginTop: 8, marginBottom: 8, gap: 8 },
@@ -372,13 +383,17 @@ education,
       testID="sc-clb"
     />
     <Pressable
-      onPress={() => navigation.navigate("LanguagePlanner" as never)}
-      accessibilityRole="button"
-      style={styles.pillLink}
-      testID="sc-open-language-planner"
-    >
-      <Text style={styles.pillLinkText}>Planner</Text>
-    </Pressable>
+  onPress={() => {
+    blurActiveElementWeb();                    // ← blur before navigation (web-only)
+    navigation.navigate("LanguagePlanner" as never);
+  }}
+  accessibilityRole="button"
+  style={styles.pillLink}
+  testID="sc-open-language-planner"
+>
+  <Text style={styles.pillLinkText}>Planner</Text>
+</Pressable>
+
   </View>
 </View>
 
@@ -593,7 +608,21 @@ education,
     <DrawProximityCard freshness={prox.freshness} items={prox.items} />
   </View>
 )}
-  
+  {/* --- PNP Mapper quick entry --- */}
+<View style={styles.pnpCard}>
+  <Text style={styles.pnpTitle}>Provincial Nominee Programs (PNP)</Text>
+  <Text style={styles.pnpSub}>
+    Map your profile to suggested provincial streams and open the official pages.
+  </Text>
+  <Pressable
+    onPress={() => navigation.navigate("PNPMapper" as never)}
+    style={({ pressed }) => [styles.pnpBtn, pressed && { opacity: 0.85 }]}
+    accessibilityRole="button"
+  >
+    <Text style={styles.pnpBtnText}>Open PNP Mapper</Text>
+  </Pressable>
+</View>
+
       </ScrollView>
 </KeyboardAvoidingView>
 
@@ -670,5 +699,24 @@ const styles = StyleSheet.create({
   justifyContent: 'center',
   alignItems: 'stretch',
 },
+  pnpCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+    backgroundColor: "#fff",
+  },
+  pnpTitle: { fontSize: 16, fontWeight: "600", color: colors.text },
+  pnpSub: { color: "#666", marginTop: 6 },
+  pnpBtn: {
+    marginTop: 10,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#333",
+  },
+  pnpBtnText: { fontWeight: "700", color: colors.text },
 
 });
