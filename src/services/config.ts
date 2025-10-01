@@ -41,6 +41,5 @@ export const IAP_SKUS_IOS = [
 ];
 
 // PNP guides (Rules repo)
-  export const PNP_GUIDES_URL =
+export const PNP_GUIDES_URL =
   'https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/content/guides/pnp.json';
-
