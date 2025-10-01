@@ -23,6 +23,8 @@ import NocDevScreen from "../dev/NocDevScreen";
 import Paywall from "../screens/Paywall";
 import ECAWizard from "../screens/ECAWizard";
 
+import EEProfileChecklist from "../screens/EEProfileChecklist";
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -80,6 +82,11 @@ export default function RootNavigator() {
         name="ProofOfFunds"
         component={ProofOfFunds}
         options={{ title: "Proof of Funds" }}
+      />
+      <Stack.Screen
+        name="EEProfileChecklist"
+        component={EEProfileChecklist}
+        options={{ title: "EE Profile Checklist" }}
       />
 
       {__DEV__ && (
