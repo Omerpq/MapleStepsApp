@@ -1,6 +1,8 @@
 // src/screens/NOCVerify.tsx
 // add:
 import { formatSourceLabel } from '../services/nocVerify';
+
+
 import { forceRefresh } from '../services/nocCache';
 import type { NocItem } from '../services/noc';
 import { getCachedNoc } from '../services/nocCache';
@@ -30,7 +32,6 @@ import * as FileSystem from 'expo-file-system';
 import {
   loadState,
   setSelectedNoc,
-  resetState as resetVerifyState,
   toggleDuty,
   setDutyNote,
   computeProgress,
@@ -42,6 +43,12 @@ import {
 } from '../services/nocVerify';
 
 import NocPicker from '../components/NocPicker'; // We’ll render it inside a modal
+
+import { useLayoutEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { useNavigation } from "@react-navigation/native";
+import { resetState as resetVerifyState } from "../services/nocVerify"; // you already import it; keep exactly this name
 
 type ExportForm = {
   applicantName: string;
@@ -153,6 +160,9 @@ async function ensureMainDuties(noc: NocBasics): Promise<NocBasics> {
 
 
 export default function NOCVerify() {
+  const reqRef = React.useRef(0);
+
+  const navigation = useNavigation<any>(); // ← add this line
   const [sourceLabel, setSourceLabel] = useState<string>('');
 
   const [state, setState] = useState<NocVerifyState | null>(null);
@@ -167,7 +177,7 @@ export default function NOCVerify() {
     employerName: '',
     startDateISO: '',
   });
-// Reset rules manifest/cache whenever this screen mounts
+
 // Reset rules manifest/cache + clear any previous verify state when this screen mounts
 useEffect(() => {
   (async () => {
@@ -181,22 +191,52 @@ useEffect(() => {
       setBusy(false);
     }
   })();
+  
 }, []);
+const onClearNoc = React.useCallback(async () => {
+  try {
+    setBusy?.(true);
+    await Promise.all([
+      resetVerifyState(),                         // clears ms.noc.verify.state.v1
+      AsyncStorage.removeItem("ms_noc_cache_v1"), // clears live duties/freshness cache
+    ]);
+    navigation?.canGoBack?.() ? navigation.goBack() : null;
+  } finally {
+    setBusy?.(false);
+  }
+}, [navigation, resetVerifyState]);
 
+useLayoutEffect(() => {
+  navigation.setOptions({
+    headerRight: () =>
+      state?.selectedNocCode ? (
+        <Pressable onPress={onClearNoc} style={{ paddingHorizontal: 12 }}>
+          <Text style={{ fontWeight: "700", color: "#b91c1c" }}>Clear selection</Text>
+        </Pressable>
+      ) : null,
+  });
+}, [navigation, state?.selectedNocCode, onClearNoc]);
 
 
   
 const progress = useMemo(() => computeProgress(state?.duties || []), [state?.duties]);
 
   // --- Handlers ---
-  const onPickNoc = async (noc: NocBasics) => {
-    if (busy) return;          // prevent double-invokes while a load is in flight
-setBusy(true);    
+      const onPickNoc = async (noc: NocBasics) => {
+      const reqId = ++reqRef.current;   // ← must be here
+      const code = String(noc.code);
+const cur = await setSelectedNoc({ code, title: noc.title ?? "", teer: noc.teer ?? "", mainDuties: noc.mainDuties ?? [] });
+setState(cur);
+setSourceLabel(cur?.sourceLabel || "");
+
+
+    
+  setBusy(true);    
 // 0a) Offline fast-path: prefer cached-live (even stale), else bundled
 const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
 if (isOffline) {
   try {
-    const cached = await getCachedNoc(String(noc.code));
+const cached = await getCachedNoc(code);
     if (cached?.payload) {
       const p = cached.payload;
       const kind = (p.source === 'jobbank' || (p.sourceUrl || '').includes('jobbank.gc.ca'))
@@ -252,7 +292,7 @@ if (isOffline) {
   try {
     // 0) Prefer cached-live (24h) to keep UI instant and consistent
 try {
-  const cached = await getCachedNoc(String(noc.code));
+const cached = await getCachedNoc(code);
   if (cached && !cached.expired) {
     const p = cached.payload;
     const kind = (p.source === 'jobbank' || (p.sourceUrl || '').includes('jobbank.gc.ca'))
@@ -286,8 +326,10 @@ try {
 } catch { /* ignore and continue to Rules */ }
 
     // 1) Try Rules-JSON first
-    const rules = await fetchNocFromRules(String(noc.code));
-    console.log('[NOC] rules response for', noc.code, rules);
+    const rules = await fetchNocFromRules(code);
+    if (reqRef.current !== reqId) return;
+
+console.log('[NOC] rules response for', code, rules);
 
     let toSave: NocBasics | null = null;
 
@@ -311,7 +353,9 @@ setSourceLabel(rulesLabel);
     } else {
       // 2) Fallback to live (ESDC/Job Bank)
       try {
-        const live = await fetchNocFromLive(String(noc.code));
+const live  = await fetchNocFromLive(code);
+        if (reqRef.current !== reqId) return;
+
 const src = String((live as any).source || '');
 const kind = src.includes('jobbank.gc.ca') ? 'live-jobbank' : 'live-esdc';
 const liveLabel = formatSourceLabel({
@@ -330,14 +374,14 @@ toSave = {
 
 setSourceLabel(liveLabel);
 
-
-
-      
+    
       } catch {
         // ignore and try local fallback next
       }
     }
 
+
+    
     // 3) Final fallback: bundled JSON (ensureMainDuties)
     if (!toSave || !toSave.mainDuties?.length) {
       toSave = { ...(await ensureMainDuties(noc)), sourceLabel: formatSourceLabel({ kind: 'bundled' }) };
@@ -349,7 +393,7 @@ setSourceLabel(formatSourceLabel({ kind: 'bundled' }));
 // try ANY cached-live payload (even expired) so offline still works.
 if (!toSave || !toSave.mainDuties?.length) {
   try {
-    const cachedAny = await getCachedNoc(String(noc.code));
+const cachedAny = await getCachedNoc(code);
     if (cachedAny?.payload?.mainDuties?.length) {
       const p = cachedAny.payload;
       const kind =
@@ -409,9 +453,12 @@ if (!toSave || !toSave.mainDuties?.length) {
     console.warn('[NOC] fetch failed', e);
     Alert.alert('Could not load NOC duties', String(e?.message || e));
   } finally {
+  if (reqRef.current === reqId) {
     setBusy(false);
     setPickerOpen(false);
   }
+}
+
 };
 
   const onToggleDuty = async (d: DutyCheck, checked: boolean) => {
@@ -604,7 +651,8 @@ try {
       {state?.duties?.length ? (
         <FlatList
           data={state.duties}
-          keyExtractor={(d) => d.id}
+          keyExtractor={(d, idx) => `${d.id}-${idx}`}
+
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.row}>

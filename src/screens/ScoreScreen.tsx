@@ -37,6 +37,8 @@ type FswWarningsProps = {
   showPof: boolean;
 };
 
+
+
 const FswWarnings: React.FC<FswWarningsProps> = ({ showEca, showPof }) => {
   if (!showEca && !showPof) return null;
 
@@ -593,7 +595,46 @@ education,
     <DrawProximityCard freshness={prox.freshness} items={prox.items} />
   </View>
 )}
-  
+
+{/* S3-03 --- PNP Mapper quick entry (canonical) --- */}
+<View style={styles.pnpCard}>
+  <Text style={styles.pnpTitle}>Provincial Nominee Programs (PNP)</Text>
+  <Text style={styles.pnpSub}>
+    Map your profile to suggested provincial streams and open the official pages.
+  </Text>
+  <Pressable
+    onPress={() => navigation.navigate("PNPMapper" as never)}
+    style={({ pressed }) => [styles.pnpBtn, pressed && { opacity: 0.85 }]}
+    accessibilityRole="button"
+    testID="sc-open-pnp-mapper"
+  >
+    <Text style={styles.pnpBtnText}>Open PNP Mapper</Text>
+  </Pressable>
+</View>
+
+
+{/* EE Profile Checklist — maple red button (outside the Provincial options card) */}
+<View style={{ height: 10 }} />
+<Pressable
+  onPress={() => navigation.navigate("EEProfileChecklist")}
+  accessibilityRole="button"
+  testID="sc-open-ee-checklist"
+  style={{
+    alignSelf: "stretch",
+    paddingVertical: 12,
+    borderRadius: 10,           // button (not pill)
+    backgroundColor: "#B91C1C", // maple red
+    borderWidth: 1,
+    borderColor: "#991B1B",
+    justifyContent: "center",
+    alignItems: "center",
+  }}
+>
+  <Text style={{ fontSize: 15, fontWeight: "800", color: "#FFFFFF" }}>
+    EE Profile Checklist
+  </Text>
+</Pressable>
+
       </ScrollView>
 </KeyboardAvoidingView>
 
@@ -670,5 +711,24 @@ const styles = StyleSheet.create({
   justifyContent: 'center',
   alignItems: 'stretch',
 },
+  pnpCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+    backgroundColor: "#fff",
+  },
+  pnpTitle: { fontSize: 16, fontWeight: "600", color: colors.text },
+  pnpSub: { color: "#666", marginTop: 6 },
+  pnpBtn: {
+    marginTop: 10,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#333",
+  },
+  pnpBtnText: { fontWeight: "700", color: colors.text },
 
 });

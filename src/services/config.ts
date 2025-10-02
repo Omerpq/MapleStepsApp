@@ -23,7 +23,10 @@ export const LANGUAGE_GUIDES_URL =
 export const POF_GUIDES_URL =
   'https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/content/guides/pof.json';
 
-export const TEMPLATE_REF_LETTER_URL =
+export const PNP_GUIDES_URL =
+  'https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/content/guides/pnp.json';
+
+  export const TEMPLATE_REF_LETTER_URL =
   'https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/templates/reference_letter.md';
 
 export const POF_THRESHOLDS_URL =

@@ -45,6 +45,7 @@ const linking = {
 };
 
 export default function App() {
+
   React.useEffect(() => {
     // one-time app bootstraps
     migrateUpdatesCachesOnce();
