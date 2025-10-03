@@ -11,6 +11,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, Pressable, ActivityIndicator, ScrollView, Alert, Platform } from "react-native";
 
 
+import { gateToEAPR } from "../services/ita";
+
+
 function Pill({ label, tone = "default" }: { label: string; tone?: "danger" | "warn" | "ok" | "default" }) {
   const palette =
     tone === "danger" ? { bg: "#FFECEC", bd: "#F5A3A3", tx: "#7A0F0F" } :
@@ -99,6 +102,28 @@ async function showNocCacheDev() {
 }
 
 export default function EEProfileChecklist() {
+  // S4-01 — Add a gated "Start e-APR" header button
+React.useLayoutEffect(() => {
+  // `navigation` is available via screen props; if your signature is (props), destructure or use props.navigation
+  // Most of your screens already have `navigation` in scope.
+  // @ts-ignore - tolerate any typing difference here
+  const nav: any = (typeof navigation !== "undefined" ? navigation : undefined);
+  if (!nav || !nav.setOptions) return;
+
+  nav.setOptions({
+    headerRight: () => (
+      <Pressable
+        onPress={() => gateToEAPR(nav, "EAPRBuilder")}
+        style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+        accessibilityRole="button"
+        accessibilityLabel="Start e-APR"
+      >
+        <Text style={{ fontWeight: "600" }}>Start e-APR</Text>
+      </Pressable>
+    ),
+  });
+}, [/* keep navigation stable */]);
+
   const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const [checks, setChecks] = useState<EECheck[]>([]);
@@ -199,17 +224,17 @@ export default function EEProfileChecklist() {
 )}
 
           <Pressable
-            onPress={() => navigation.navigate("ActionPlan")}
-            style={{
-              backgroundColor: colors.gold,
-              paddingVertical: 10,
-              paddingHorizontal: 14,
-              borderRadius: 8,
-            }}
-          >
-            <Text style={{ color: colors.text, fontWeight: "700" }}>Open Action Plan</Text>
-          </Pressable>
-        </View>
+              onPress={() => navigation.navigate("MainTabs", { screen: "ActionPlan" })}
+              style={{
+                backgroundColor: colors.gold,
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ color: colors.text, fontWeight: "700" }}>Open Action Plan</Text>
+            </Pressable>
+          </View>
 
         {/* DEV-only debug panel (not inside the button) */}
         {__DEV__ && (

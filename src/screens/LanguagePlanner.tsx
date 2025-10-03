@@ -10,6 +10,7 @@ import {
   ScrollView,
   Pressable,
   Platform,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
@@ -27,6 +28,47 @@ import {
   abilityLabel,
 } from '../services/language';
 
+
+import { useLayoutEffect } from "react";
+
+
+
+// === Date helpers (future-only) ===
+const today = new Date();
+const MIN_Y = today.getFullYear();
+const MIN_M = today.getMonth() + 1; // 1-12
+const MIN_D = today.getDate();
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
+
+// === Local state + validation for Y/M/D ===
+const buildYearOptions = (span = 4) =>
+  Array.from({ length: span }, (_, i) => MIN_Y + i);
+
+const buildMonthOptions = (y: number) => {
+  const start = y === MIN_Y ? MIN_M : 1;
+  return Array.from({ length: 12 - start + 1 }, (_, i) => start + i);
+};
+
+const buildDayOptions = (y: number, m: number) => {
+  const dim = daysInMonth(y, m);
+  const start = y === MIN_Y && m === MIN_M ? MIN_D : 1;
+  return Array.from({ length: dim - start + 1 }, (_, i) => start + i);
+};
+
+// Returns ISO string YYYY-MM-DD
+const toISO = (y: number, m: number, d: number) =>
+  `${y}-${pad2(m)}-${pad2(d)}`;
+
+// Keep a small helper to check & clamp if user changes Y/M causing the day to overflow
+const clampDay = (y: number, m: number, d: number) => {
+  const start = y === MIN_Y && m === MIN_M ? MIN_D : 1;
+  const max = daysInMonth(y, m);
+  return Math.max(start, Math.min(d, max));
+};
+
+
 export default function LanguagePlanner() {
   const navigation = useNavigation();
 
@@ -40,6 +82,21 @@ export default function LanguagePlanner() {
   const [targetClb, setTargetClb] = React.useState<string>('9');
   const [testDate, setTestDate] = React.useState<string>(''); // YYYY-MM-DD
   const [hoursPerWeek, setHoursPerWeek] = React.useState<string>('6');
+
+  // Keep year/month/day in sync with saved ISO; restrict to today-or-future
+const [y, setY] = React.useState<number>(MIN_Y);
+const [m, setM] = React.useState<number>(MIN_M);
+const [d, setD] = React.useState<number>(MIN_D);
+
+React.useEffect(() => {
+  if (!testDate) { setY(MIN_Y); setM(MIN_M); setD(MIN_D); return; }
+  const [yy, mm, dd] = testDate.split('-').map(Number);
+  const yy2 = Math.max(MIN_Y, yy || MIN_Y);
+  const mm2 = yy2 === MIN_Y ? Math.max(MIN_M, mm || MIN_M) : (mm || 1);
+  const dd2 = clampDay(yy2, mm2, dd || 1);
+  setY(yy2); setM(mm2); setD(dd2);
+}, [testDate]);
+
 
   // Generated plan
   const [plan, setPlan] = React.useState<WeeklyPlanItem[] | undefined>(undefined);
@@ -75,7 +132,39 @@ export default function LanguagePlanner() {
       if (s.results?.speakingClb != null) setSpeakingClb(String(s.results.speakingClb));
     })();
   }, []);
+useLayoutEffect(() => {
+  navigation.setOptions({
+    headerRight: () => (
+      <Pressable
+        onPress={async () => {
+          const confirm = Platform.OS === "web"
+            ? window.confirm("Clear planned Language test date?")
+            : await new Promise<boolean>(res => Alert.alert(
+                "Clear planned date?",
+                "This removes the saved test date.",
+                [{ text: "Cancel", style: "cancel", onPress: () => res(false) },
+                 { text: "Clear", style: "destructive", onPress: () => res(true) }]));
+          if (!confirm) return;
 
+          const K = "ms.language.state.v1";
+          const raw = await AsyncStorage.getItem(K);
+          const s = raw ? JSON.parse(raw) : {};
+          delete s.testDateISO;
+          if (Array.isArray(s.plan) && s.plan.length === 0) {
+            // leave plan alone; checklist already treats non-empty plan as OK
+          }
+          await AsyncStorage.setItem(K, JSON.stringify(s));
+          // ensure UI reflects removal (call your existing reload if present)
+          navigation.goBack();
+        }}
+        style={{ marginRight: 12, backgroundColor: "#7F1D1D", paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 }}
+      >
+        <Text style={{ color: "#fff", fontWeight: "700" }}>Clear date</Text>
+      </Pressable>
+    )
+  });
+}, [navigation]);
+navigation
   const onGenerate = async () => {
     if (!testDate.trim()) {
       flashTick('Enter a test date (YYYY-MM-DD)');
@@ -191,16 +280,61 @@ export default function LanguagePlanner() {
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Test date (YYYY-MM-DD)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="2025-12-15"
-          value={testDate}
-          onChangeText={setTestDate}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
+  <Text style={styles.label}>Test date</Text>
+  <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
+    {/* Year */}
+    <View style={styles.pickerWrap}>
+      <Picker<number>
+        selectedValue={y}
+        onValueChange={(yy) => {
+          const mm = yy === MIN_Y ? Math.max(MIN_M, m) : m;
+          const dd = clampDay(yy, mm, d);
+          setY(yy); setM(mm); setD(dd);
+          setTestDate(toISO(yy, mm, dd));
+        }}
+        style={styles.picker}
+      >
+        {buildYearOptions(4).map((yy) => (
+          <Picker.Item key={yy} label={String(yy)} value={yy} />
+        ))}
+      </Picker>
+    </View>
+
+    {/* Month */}
+    <View style={styles.pickerWrap}>
+      <Picker<number>
+        selectedValue={m}
+        onValueChange={(mm) => {
+          const dd = clampDay(y, mm, d);
+          setM(mm); setD(dd);
+          setTestDate(toISO(y, mm, dd));
+        }}
+        style={styles.picker}
+      >
+        {buildMonthOptions(y).map((mm) => (
+          <Picker.Item key={mm} label={String(mm).padStart(2, '0')} value={mm} />
+        ))}
+      </Picker>
+    </View>
+
+    {/* Day */}
+    <View style={styles.pickerWrap}>
+      <Picker<number>
+        selectedValue={d}
+        onValueChange={(dd) => {
+          setD(dd);
+          setTestDate(toISO(y, m, dd));
+        }}
+        style={styles.picker}
+      >
+        {buildDayOptions(y, m).map((dd) => (
+          <Picker.Item key={dd} label={String(dd).padStart(2, '0')} value={dd} />
+        ))}
+      </Picker>
+    </View>
+  </View>
+</View>
+
 
       <View style={styles.row}>
         <Text style={styles.label}>Hours per week</Text>
@@ -296,6 +430,8 @@ export default function LanguagePlanner() {
     </ScrollView>
   );
 }
+
+
 
 // ------- helpers -------
 function sanitizeIntString(s: string, min: number, max: number): string {

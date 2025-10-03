@@ -1,9 +1,7 @@
 // src/screens/ECAWizard.tsx
-import * as ECA from '../services/eca'; // already there
-// no new import needed if ECA is namespaced
+import * as ECA from '../services/eca'; // keep namespace import
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useLayoutEffect, useCallback } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,8 +12,9 @@ import {
   StyleSheet,
   Text,
   View,
+  Platform,
 } from 'react-native';
-
+import { useNavigation } from "@react-navigation/native";
 
 // ---------- UI helpers ----------
 function fmtDay(iso?: string) {
@@ -36,9 +35,31 @@ function nextStatus(s: ECA.EcaItemStatus): ECA.EcaItemStatus {
   if (s === 'in_progress') return 'done';
   return 'not_started';
 }
+async function confirmClear(): Promise<boolean> {
+  if (Platform.OS === 'web') {
+    // RN Web doesn’t support multi-button Alert. Use browser confirm.
+    // This returns true on “OK”, false on “Cancel”.
+    // eslint-disable-next-line no-restricted-globals
+    return Promise.resolve(window.confirm(
+      'Clear ECA selection?\nThis will remove your selected ECA body and mark the Action Plan step as Not done.'
+    ));
+  }
+  // Native: use 2-button Alert and resolve the choice.
+  return new Promise<boolean>((resolve) => {
+    Alert.alert(
+      'Clear ECA selection?',
+      'This will remove your selected ECA body and mark the Action Plan step as Not done.',
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'Clear', style: 'destructive', onPress: () => resolve(true) },
+      ]
+    );
+  });
+}
 
 // ---------- Screen ----------
 export default function ECAWizard() {
+  const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const [guides, setGuides] = useState<ECA.LoaderResult<ECA.EcaGuides> | null>(null);
   const [state, setState] = useState<ECA.EcaState | null>(null);
@@ -48,34 +69,75 @@ export default function ECAWizard() {
     return guides.data.bodies.find(b => b.id === state.selectedBodyId);
   }, [guides, state?.selectedBodyId]);
 
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    const [g, s] = await Promise.all([ECA.loadGuides(), ECA.loadState()]);
+    setGuides(g);
+    setState(s);
+    await ECA.nudgeFocusToStep(2);
+    setLoading(false);
+    // in case it’s already complete from earlier sessions
+    await ECA.markActionPlanTaskIfComplete(ECA.ECA_TASK_ID);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     (async () => {
-      setLoading(true);
-      const [g, s] = await Promise.all([ECA.loadGuides(), ECA.loadState()]);
-if (!mounted) return;
-setGuides(g);
-setState(s);
-
-// 👇 add this line
-await ECA.nudgeFocusToStep(2);
-
-setLoading(false);
-// in case it’s already complete from earlier sessions
-await ECA.markActionPlanTaskIfComplete(ECA.ECA_TASK_ID);
-
+      await loadAll();
+      if (!mounted) return;
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [loadAll]);
+
+  // Header: Clear selection (Option A)
+  useLayoutEffect(() => {
+  navigation.setOptions({
+    headerRight: () =>
+      state?.selectedBodyId ? (
+        <Pressable
+          onPress={async () => {
+            const confirmed = await confirmClear();
+            if (!confirmed) return;
+
+            setLoading(true);
+            const next = await ECA.clearSelectedBody();             // wipes ms.eca.state.v1 + cancels reminders
+            await ECA.syncActionPlanEcaChoose(ECA.ECA_TASK_ID);     // keep AP row in sync
+            setState(next);
+            setLoading(false);
+
+            if (navigation.canGoBack && navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('MainTabs', { screen: 'ActionPlan' });
+
+            }
+          }}
+          style={{
+            marginRight: 12,
+            backgroundColor: '#7F1D1D',
+            paddingVertical: 6,
+            paddingHorizontal: 10,
+            borderRadius: 8,
+            opacity: loading ? 0.7 : 1,
+          }}
+          disabled={loading}
+          accessibilityRole="button"
+        >
+          <Text style={{ color: '#fff', fontWeight: '700' }}>Clear selection</Text>
+        </Pressable>
+      ) : null,
+  });
+  // include 'loading' so the button disables while clearing
+}, [navigation, state?.selectedBodyId, loading]);
+
 
   async function handleSelectBody(bodyId: string) {
-  setLoading(true);
-  const s = await ECA.selectBody(bodyId); // this now auto-syncs the AP row
-  setState(s);
-  setLoading(false);
-  await ECA.markActionPlanTaskIfComplete(ECA.ECA_TASK_ID);
-}
-
+    setLoading(true);
+    const s = await ECA.selectBody(bodyId); // selection auto-syncs AP row inside service
+    setState(s);
+    setLoading(false);
+    await ECA.markActionPlanTaskIfComplete(ECA.ECA_TASK_ID);
+  }
 
   async function handleToggleStatus(itemId: string) {
     if (!state) return;
@@ -113,33 +175,20 @@ await ECA.markActionPlanTaskIfComplete(ECA.ECA_TASK_ID);
   }
 
   const header = useMemo(() => {
-  if (!guides) return null;
-  const srcLabel =
-    guides.source === 'remote' ? 'Remote' :
-    guides.source === 'cache'  ? 'Cache'  : 'Local';
-  const when = new Date(guides.cachedAt).toLocaleString();
+    if (!guides) return null;
+    const srcLabel =
+      guides.source === 'remote' ? 'Remote' :
+      guides.source === 'cache'  ? 'Cache'  : 'Local';
+    const when = new Date(guides.cachedAt).toLocaleString();
 
-  return (
-    <View style={styles.header}>
-      <Text style={styles.h1}>Education Credential Assessment (ECA)</Text>
-      <Text style={styles.subtle}>{srcLabel} • last synced {when}</Text>
-
-      {__DEV__ && (
-        <Pressable
-  onPress={async () => {
-    const next = await ECA.clearSelectedBody(); // unchecks AP row (only path)
-    setState(next);
-  }}
-  style={styles.linkBtn}
->
-  <Text style={styles.linkText}>Change ECA body</Text>
-</Pressable>
-
-      )}
-    </View>
-  );
-}, [guides]);
-
+    return (
+      <View style={styles.header}>
+        <Text style={styles.h1}>Education Credential Assessment (ECA)</Text>
+        <Text style={styles.subtle}>{srcLabel} • last synced {when}</Text>
+        {/* Removed DEV/inline “Change ECA body” buttons — use headerRight instead */}
+      </View>
+    );
+  }, [guides]);
 
   if (loading && !guides) {
     return (
@@ -170,10 +219,10 @@ await ECA.markActionPlanTaskIfComplete(ECA.ECA_TASK_ID);
             {!!b.notes && <Text style={styles.notes}>{b.notes}</Text>}
             <View style={styles.row}>
               {b.link && (
-  <Pressable onPress={() => Linking.openURL(b.link!)} style={styles.linkBtn}>
-    <Text style={styles.linkText}>Open website</Text>
-  </Pressable>
-)}
+                <Pressable onPress={() => Linking.openURL(b.link!)} style={styles.linkBtn}>
+                  <Text style={styles.linkText}>Open website</Text>
+                </Pressable>
+              )}
 
               <Pressable onPress={() => handleSelectBody(b.id)} style={styles.primaryBtn}>
                 <Text style={styles.primaryText}>Select</Text>
@@ -194,11 +243,10 @@ await ECA.markActionPlanTaskIfComplete(ECA.ECA_TASK_ID);
           {selectedBody?.name ?? 'ECA Body'} — Checklist
         </Text>
         {selectedBody?.link && (
-  <Pressable onPress={() => Linking.openURL(selectedBody.link!)} style={styles.linkBtnSmall}>
-    <Text style={styles.linkText}>Site</Text>
-  </Pressable>
-)}
-
+          <Pressable onPress={() => Linking.openURL(selectedBody.link!)} style={styles.linkBtnSmall}>
+            <Text style={styles.linkText}>Site</Text>
+          </Pressable>
+        )}
       </View>
 
       <FlatList
@@ -245,20 +293,7 @@ await ECA.markActionPlanTaskIfComplete(ECA.ECA_TASK_ID);
             <Pressable onPress={handleMarkAllDone} style={styles.secondaryBtn}>
               <Text style={styles.secondaryText}>Mark all done</Text>
             </Pressable>
-            <Pressable
-  onPress={async () => {
-    // persistently clear selection
-    const next = { selectedBodyId: undefined, items: [], updatedAt: new Date().toISOString() };
-    await AsyncStorage.setItem('ms.eca.state.v1', JSON.stringify(next));
-    setState(next);
-    // sync AP row -> not done; clear focus floor
-    await ECA.syncActionPlanEcaChoose('03_eca_choose_and_start');
-  }}
-  style={styles.linkBtn}
->
-  <Text style={styles.linkText}>Change ECA body</Text>
-</Pressable>
-
+            {/* Removed footer “Change ECA body” button to avoid duplicate/unsafe paths */}
           </View>
         }
       />

@@ -7,7 +7,7 @@ import * as ECA from '../services/eca';
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 
-import { View, Text, FlatList, Pressable, ActivityIndicator, StyleSheet, Switch, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, ScrollView, FlatList, Pressable, ActivityIndicator, StyleSheet, Switch, useWindowDimensions, Platform } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -639,8 +639,16 @@ useFocusEffect(
       {/* Row body wrapper — div on web, Pressable on native */}
       <RowTouchable
   style={{ flex: 1 }}
-  disabled={blocked || isEcaChoose} // ECA row is wizard-controlled
-  onPress={() => goToTask(navigation, toCandidate(item), isSubscribed)}
+  disabled={blocked} // allow ECA row to be clickable; still block truly blocked rows
+onPress={() => {
+  if (blocked) return;
+  if (isEcaChoose) {
+    navigation.navigate('ECAWizard');
+  } else {
+    goToTask(navigation, toCandidate(item), isSubscribed);
+  }
+}}
+
   accessibilityLabel={`Open: ${stripPrefix(item.title)}`} // <-- satisfies the test
 >
 
@@ -654,17 +662,19 @@ useFocusEffect(
 
         {/* Wizard-controlled pill for ECA row */}
         {isEcaChoose && (
-          <Pressable
-            onPress={() => goToTask(navigation, toCandidate(item), isSubscribed)}
-            style={styles.ecaNotePill}
-            accessibilityRole="button"
-            accessibilityLabel="Open ECA Wizard"
-          >
-            <Text style={styles.ecaNotePillText}>
-              Wizard-controlled — open ECA Wizard
-            </Text>
-          </Pressable>
-        )}
+  <Pressable
+    onPress={() => navigation.navigate('ECAWizard')}
+    accessibilityRole="button"
+    accessibilityLabel="Open ECA Wizard"
+    style={styles.ecaNotePill}
+  >
+    <Text style={styles.ecaNotePillText}>
+      Wizard-controlled — open ECA Wizard
+    </Text>
+  </Pressable>
+)}
+
+
 
         {/* ECA progress chip (only on the ECA “Pick your body” row) */}
         {isEcaChoose && ecaProgress && ecaProgress.total > 0 ? (

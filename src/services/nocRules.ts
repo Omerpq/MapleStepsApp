@@ -3,6 +3,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { LoaderResult } from './updates';
 
+const NOC_RULES_VERBOSE = false;
+const nocDbg = (...args: any[]) => { if (__DEV__ && NOC_RULES_VERBOSE) console.log(...args); };
+
+
 export type RulesNoc = {
   code: string;
   title?: string;
@@ -22,7 +26,9 @@ function teerFromCode(code5: string): string | undefined {
 }
 
 
-const DLOG = (...a: any[]) => __DEV__ && console.log('[NOC_RULES]', ...a);
+const VERBOSE = false;
+const DLOG = (...a: any[]) => { if (__DEV__ && VERBOSE) DLOG('[NOC_RULES]', ...a); };
+
 // --- tolerant readers for title/teer/duties (handles nested shapes like {data:{...}}, {items:[...]}, etc.)
 const _candidateObjs = (root: any) => [
   root,

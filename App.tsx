@@ -41,10 +41,17 @@ const navTheme: Theme = {
 const expoPrefix = Linking.createURL('/');
 const linking = {
   prefixes: [expoPrefix, 'maplesteps://', 'http://localhost:8081', 'http://127.0.0.1:8081'],
-  config: { screens: { NocDev: 'dev/noc' } },
+  config: {
+    screens: {
+      PNPMapper: 'pnp',
+      EEProfileChecklist: 'ee',
+      NocDev: 'dev/noc',
+    },
+  },
 };
 
 export default function App() {
+
   React.useEffect(() => {
     // one-time app bootstraps
     migrateUpdatesCachesOnce();
