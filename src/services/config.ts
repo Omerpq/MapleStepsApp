@@ -14,6 +14,9 @@ export const RULES_CONFIG = {
 } as const;
 
 // Guides & templates (Rules repo)
+export const EAPR_GUIDES_URL =
+  'https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/content/guides/eapr.json';
+
 export const ECA_GUIDES_URL =
   'https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/content/guides/eca.json';
 
