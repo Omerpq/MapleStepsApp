@@ -24,6 +24,10 @@ import Paywall from "../screens/Paywall";
 import ECAWizard from "../screens/ECAWizard";
 
 import EEProfileChecklist from "../screens/EEProfileChecklist";
+import EAPRBuilder from "../screens/EAPRBuilder";
+
+
+import PNPMapper from "../screens/PNPMapper";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -83,11 +87,25 @@ export default function RootNavigator() {
         component={ProofOfFunds}
         options={{ title: "Proof of Funds" }}
       />
+     <Stack.Screen 
+        name="PNPMapper"
+        component={PNPMapper}
+        options={{ title: "PNP Mapper", headerShown: true }} 
+      />
+
+
       <Stack.Screen
         name="EEProfileChecklist"
         component={EEProfileChecklist}
         options={{ title: "EE Profile Checklist" }}
       />
+
+      <Stack.Screen
+        name="EAPRBuilder"
+        component={EAPRBuilder}
+        options={{ title: "e-APR Builder", headerShown: true }}
+      />
+
 
       {__DEV__ && (
         <Stack.Screen
