@@ -108,7 +108,8 @@ export default function ECAWizard() {
             if (navigation.canGoBack && navigation.canGoBack()) {
               navigation.goBack();
             } else {
-              navigation.navigate('ActionPlan'); // web fallback if no history
+              navigation.navigate('MainTabs', { screen: 'ActionPlan' });
+
             }
           }}
           style={{

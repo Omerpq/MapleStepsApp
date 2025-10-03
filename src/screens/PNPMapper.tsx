@@ -1,4 +1,15 @@
 ﻿// src/screens/PNPMapper.tsx
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+
+import {
+  loadPnpGuides,
+  matchStreams,
+  type PnpProfileInput,
+  type RankedStream,
+  type PnpGuides,
+} from "../services/pnp";
+
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -10,9 +21,11 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
-import { loadPnpGuides, matchStreams, PnpProfileInput, RankedStream } from "../services/pnp";
+
 
 type Source = "remote" | "cache" | "local";
+
+type HttpStatus = 200 | 304;
 
 export default function PNPMapper() {
   // loader state
@@ -21,51 +34,93 @@ export default function PNPMapper() {
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [status, setStatus] = useState<200 | 304 | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
-  const [guides, setGuides] = useState<any | null>(null);
-
+  const [guides, setGuides]   = useState<PnpGuides | null>(null);
+  const [ranked, setRanked]   = useState<RankedStream[]>([]);
   // profile toggles
   const [profile, setProfile] = useState<PnpProfileInput>({
-    hasExpressEntryProfile: false,
-    hasJobOffer: false,
-    isTech: false,
-    isHealth: false,
-    isTrades: false,
-    isFrancophone: false,
-    isIntlStudentOrGrad: false,
-    hasProvincialTies: false,
-    isOccupationInDemand: false,
-  });
 
-  // load once
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await loadPnpGuides();
-        if (!mounted) return;
-        if (res.ok && res.data) {
-          setGuides(res.data);
-          setSource(res.source);
-          setFetchedAt(res.meta?.last_checked ?? null);
-          setStatus(res.meta?.status);
-        } else {
-          setError(res.error ?? "Failed to load PNP guides.");
-        }
-      } catch (e: any) {
-        setError(e?.message || "Failed to load PNP guides.");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+     hasExpressEntryProfile: false,
+  hasJobOffer: false,
+  isTech: false,
+  isHealth: false,
+  isTrades: false,
+  isFrancophone: false,
+  isIntlStudent: false,
+  hasTies: false,
+  inDemand: false,
+});
+const forceRemote = async () => {
+  try {
+    await AsyncStorage.multiRemove([
+      "ms.pnp.guides.cache.v1",
+      "ms.pnp.guides.meta.v1",
+    ]);
+    setLoading(true);
+    // re-run the loader inline
+    try {
+      const res = await loadPnpGuides();
+      setGuides(res.data);
+      setSource(res.source as Source);
+      setFetchedAt(res.meta?.last_checked ?? null);
+      setStatus(res.meta?.status as HttpStatus | undefined);
+      setError(null);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load PNP guides.");
+    } finally {
+      setLoading(false);
+    }
+  } catch {}
+};
+const [refreshing, setRefreshing] = useState(false);
+
+const refresh = async () => {
+  try {
+    setRefreshing(true);
+    const res = await loadPnpGuides(); // conditional GET; won’t wipe cache
+    setGuides(res.data);
+    setSource(res.source as Source);
+    setFetchedAt(res.meta?.last_checked ?? null);
+    setStatus(res.meta?.status as HttpStatus | undefined);
+    setError(null);
+  } catch (e: any) {
+    setError(e?.message || "Failed to refresh.");
+  } finally {
+    setRefreshing(false);
+  }
+};
+
+// load once
+useEffect(() => {
+  let mounted = true;
+  (async () => {
+    try {
+      const res = await loadPnpGuides(); // { source, data, cachedAt, meta }
+      if (!mounted) return;
+
+      setGuides(res.data);
+      setSource(res.source as Source);
+      setFetchedAt(res.meta?.last_checked ?? null);
+      setStatus(res.meta?.status as HttpStatus | undefined);
+      setError(null);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load PNP guides.");
+    } finally {
+      if (mounted) setLoading(false);
+    }
+  })();
+  return () => {
+    mounted = false;
+  };
+}, []);
+
+
+
 
   const results: RankedStream[] = useMemo(() => {
-    if (!guides) return [];
-    return matchStreams(guides, profile, 20);
-  }, [guides, profile]);
+  if (!guides) return [];
+  return matchStreams(profile, guides);
+}, [guides, profile]);
+
 
   const headerLabel = useMemo(() => {
     const src = source === "remote" ? "Remote" : source === "cache" ? "Cache" : "Local";
@@ -109,6 +164,23 @@ export default function PNPMapper() {
             ))}
           </View>
         ) : null}
+        {item.matched?.length ? (
+  <View style={styles.tagsRow}>
+    {item.matched.map((c: string) => (
+      <View key={c} style={styles.tag}>
+        <Text style={styles.tagText}>{c}</Text>
+      </View>
+    ))}
+  </View>
+) : null}
+
+{item.hints?.length ? (
+  <View style={{ marginTop: 6 }}>
+    {item.hints.map((h: string, i: number) => (
+      <Text key={i} style={styles.hint}>• {h}</Text>
+    ))}
+  </View>
+) : null}
 
         {item.hints?.length ? (
           <View style={{ marginTop: 6 }}>
@@ -149,69 +221,130 @@ export default function PNPMapper() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>PNP Mapper</Text>
-      <Text style={styles.meta}>{headerLabel}</Text>
+      {/* Freshness header + dev-only Force Remote */}
+<View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+  <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+  <Text style={styles.meta}>{headerLabel}</Text>
+  <Pressable
+    onPress={refresh}
+    accessibilityRole="button"
+    style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: "#E5E7EB", backgroundColor: "#FFFFFF" }}
+    testID="pnp-refresh"
+    disabled={refreshing}
+  >
+    <Text style={{ fontSize: 12, fontWeight: "700", color: "#111827" }}>{refreshing ? "Refreshing…" : "Refresh"}</Text>
+  </Pressable>
+</View>
+
+  {__DEV__ && (
+    <Pressable
+      onPress={forceRemote}
+      accessibilityRole="button"
+      style={{
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        backgroundColor: "#FFFFFF",
+      }}
+      testID="pnp-force-remote"
+    >
+      <Text style={{ fontSize: 12, fontWeight: "700", color: "#111827" }}>Force Remote</Text>
+    </Pressable>
+  )}
+</View>
 
       <View style={styles.block}>
         <Text style={styles.blockTitle}>Your profile</Text>
 
-        <ToggleRow
-          label="I already have an Express Entry profile"
-          value={!!profile.hasExpressEntryProfile}
-          onValueChange={(v) => setProfile((p) => ({ ...p, hasExpressEntryProfile: v }))}
-          testID="pnp-ee"
-        />
-        <ToggleRow
-          label="I have a (valid) Canadian job offer / employer"
-          value={!!profile.hasJobOffer}
-          onValueChange={(v) => setProfile((p) => ({ ...p, hasJobOffer: v }))}
-          testID="pnp-job"
-        />
-        <ToggleRow
-          label="My field is Tech / IT"
-          value={!!profile.isTech}
-          onValueChange={(v) => setProfile((p) => ({ ...p, isTech: v }))}
-          testID="pnp-tech"
-        />
-        <ToggleRow
-          label="My field is Health / Nursing"
-          value={!!profile.isHealth}
-          onValueChange={(v) => setProfile((p) => ({ ...p, isHealth: v }))}
-          testID="pnp-health"
-        />
-        <ToggleRow
-          label="I’m in Skilled Trades"
-          value={!!profile.isTrades}
-          onValueChange={(v) => setProfile((p) => ({ ...p, isTrades: v }))}
-          testID="pnp-trades"
-        />
-        <ToggleRow
-          label="I’m Francophone (French CLB ≈ 7+)"
-          value={!!profile.isFrancophone}
-          onValueChange={(v) => setProfile((p) => ({ ...p, isFrancophone: v }))}
-          testID="pnp-fr"
-        />
-        <ToggleRow
-          label="I’m an international student/graduate in Canada"
-          value={!!profile.isIntlStudentOrGrad}
-          onValueChange={(v) => setProfile((p) => ({ ...p, isIntlStudentOrGrad: v }))}
-          testID="pnp-intl"
-        />
-        <ToggleRow
-          label="I have ties to a province (family/study/work/invitation)"
-          value={!!profile.hasProvincialTies}
-          onValueChange={(v) => setProfile((p) => ({ ...p, hasProvincialTies: v }))}
-          testID="pnp-ties"
-        />
-        <ToggleRow
-          label="My occupation is currently ‘in-demand’"
-          value={!!profile.isOccupationInDemand}
-          onValueChange={(v) => setProfile((p) => ({ ...p, isOccupationInDemand: v }))}
-          testID="pnp-demand"
-        />
-      </View>
+{/* Profile toggles */}
+<ToggleRow
+  label="I already have an Express Entry profile"
+  value={!!profile.hasExpressEntryProfile}
+  onValueChange={(v: boolean) =>
+    setProfile((p: PnpProfileInput) => ({ ...p, hasExpressEntryProfile: v }))
+  }
+  testID="pnp-ee"
+/>
+
+<ToggleRow
+  label="I have a (valid) Canadian job offer / employer"
+  value={!!profile.hasJobOffer}
+  onValueChange={(v: boolean) =>
+    setProfile((p: PnpProfileInput) => ({ ...p, hasJobOffer: v }))
+  }
+  testID="pnp-job"
+/>
+
+<ToggleRow
+  label="My field is Tech / IT"
+  value={!!profile.isTech}
+  onValueChange={(v: boolean) =>
+    setProfile((p: PnpProfileInput) => ({ ...p, isTech: v }))
+  }
+  testID="pnp-tech"
+/>
+
+<ToggleRow
+  label="My field is Health / Nursing"
+  value={!!profile.isHealth}
+  onValueChange={(v: boolean) =>
+    setProfile((p: PnpProfileInput) => ({ ...p, isHealth: v }))
+  }
+  testID="pnp-health"
+/>
+
+<ToggleRow
+  label="I’m in Skilled Trades"
+  value={!!profile.isTrades}
+  onValueChange={(v: boolean) =>
+    setProfile((p: PnpProfileInput) => ({ ...p, isTrades: v }))
+  }
+  testID="pnp-trades"
+/>
+
+<ToggleRow
+  label="I’m Francophone (French CLB ≈ 7+)"
+  value={!!profile.isFrancophone}
+  onValueChange={(v: boolean) =>
+    setProfile((p: PnpProfileInput) => ({ ...p, isFrancophone: v }))
+  }
+  testID="pnp-fr"
+/>
+
+<ToggleRow
+  label="I’m an international student/graduate in Canada"
+  value={!!profile.isIntlStudent}
+  onValueChange={(v: boolean) =>
+    setProfile((p: PnpProfileInput) => ({ ...p, isIntlStudent: v }))
+  }
+  testID="pnp-intl"
+/>
+
+<ToggleRow
+  label="I have ties to a province (family/study/work/invitation)"
+  value={!!profile.hasTies}
+  onValueChange={(v: boolean) =>
+    setProfile((p: PnpProfileInput) => ({ ...p, hasTies: v }))
+  }
+  testID="pnp-ties"
+/>
+
+<ToggleRow
+  label="My occupation is currently ‘in-demand’"
+  value={!!profile.inDemand}
+  onValueChange={(v: boolean) =>
+    setProfile((p: PnpProfileInput) => ({ ...p, inDemand: v }))
+  }
+  testID="pnp-demand"
+/>
+
+</View>{/* ← close the profile block */}
 
       <View style={styles.block}>
         <Text style={styles.blockTitle}>Suggested streams</Text>
+        
         {results.length === 0 ? (
           <Text style={{ color: "#666", marginTop: 6 }}>
             No matches yet. Turn on one or more profile options above, or leave all off to browse all streams.

@@ -224,17 +224,17 @@ React.useLayoutEffect(() => {
 )}
 
           <Pressable
-            onPress={() => navigation.navigate("ActionPlan")}
-            style={{
-              backgroundColor: colors.gold,
-              paddingVertical: 10,
-              paddingHorizontal: 14,
-              borderRadius: 8,
-            }}
-          >
-            <Text style={{ color: colors.text, fontWeight: "700" }}>Open Action Plan</Text>
-          </Pressable>
-        </View>
+              onPress={() => navigation.navigate("MainTabs", { screen: "ActionPlan" })}
+              style={{
+                backgroundColor: colors.gold,
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ color: colors.text, fontWeight: "700" }}>Open Action Plan</Text>
+            </Pressable>
+          </View>
 
         {/* DEV-only debug panel (not inside the button) */}
         {__DEV__ && (

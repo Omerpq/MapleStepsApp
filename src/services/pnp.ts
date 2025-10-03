@@ -1,189 +1,221 @@
 ﻿// src/services/pnp.ts
-// A4-style loader for PNP guides (Rules repo) + simple profileÔåÆstream matcher.
-// Remote ÔåÆ Cache ÔåÆ Local (no Local bundle yet; remote+cache only). Uses conditional GET (ETag/Last-Modified).
+// A4 loader (Remote → Cache) with ETag/Last-Modified; 304-fallback via body equality.
+// Also exports matching helpers & types used by PNPMapper.tsx.
 
-import { PNP_GUIDES_URL } from "./config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { PNP_GUIDES_URL } from "./config";
 
-// ---------- AsyncStorage keys ----------
-const CACHE_KEY = "ms.pnp.guides.cache.v1";
-const META_KEY  = "ms.pnp.guides.meta.v1";
+/** ───────────────── Types ───────────────── **/
+export type LoaderSource = "remote" | "cache" | "local";
 
-// ---------- Types ----------
-export type PnpCategoryId =
-  | "express_entry" | "job_offer_opt" | "tech" | "health" | "trades"
-  | "french" | "intl_student" | "in_demand" | "connection";
+type PnpMeta = {
+  status: 200 | 304;
+  etag?: string;
+  last_modified?: string;
+  __cachedAt?: number;        // when body was last written to cache
+  last_checked?: string;      // ISO when we last validated (200 or 304)
+};
 
-export interface PnpCategory {
-  id: PnpCategoryId;
-  title: string;
-}
-
-export interface PnpStream {
+export type PnpStream = {
   id: string;
   province: string;
   title: string;
-  categories: PnpCategoryId[];
+  categories: string[];
   hints?: string[];
-  officialUrl: string; // always link out to official sources
-}
+  officialUrl: string;
+};
 
-export interface PnpGuides {
-  version: string;
-  categories: PnpCategory[];
+export type PnpGuides = {
+  version?: string;
+  categories?: { id: string; title: string }[];
   streams: PnpStream[];
-}
+};
 
-// LoaderResult (local copy; matches your Updates A4 shape where practical)
-export type Source = "remote" | "cache" | "local";
-export interface LoaderMeta {
-  etag?: string;
-  last_modified?: string;
-  status?: 200 | 304;          // 200 = updated; 304 = validated (from A4)
-  last_checked?: string;       // ISO of the attempt time
-  __cachedAt?: number | null;  // ms epoch when cache was written
-}
-export interface LoaderResult<T> {
-  ok: boolean;
-  source: Source;
-  data: T | null;
-  meta?: LoaderMeta;
-  error?: string;
-}
+export type PnpResult = {
+  source: LoaderSource;
+  data: PnpGuides;
+  cachedAt: number | null;
+  meta: PnpMeta;
+};
 
-// ---------- Internal helpers ----------
-async function readCache(): Promise<LoaderResult<PnpGuides> | null> {
-  try {
-    const [dataRaw, metaRaw] = await AsyncStorage.multiGet([CACHE_KEY, META_KEY]);
-    const dataJson = dataRaw?.[1] ? JSON.parse(dataRaw[1]!) as PnpGuides : null;
-    const metaJson = metaRaw?.[1] ? JSON.parse(metaRaw[1]!) as LoaderMeta : undefined;
-    if (dataJson) {
-      return { ok: true, source: "cache", data: dataJson, meta: metaJson };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
+// Profile → categories toggles used by the mapper
+export type PnpProfileInput = {
+  hasExpressEntryProfile: boolean;
+  hasJobOffer: boolean;
+  isTech: boolean;
+  isHealth: boolean;
+  isTrades: boolean;
+  isFrancophone: boolean;
+  isIntlStudent: boolean;
+  hasTies: boolean;
+  inDemand: boolean;
+};
 
-async function writeCache(data: PnpGuides, meta: LoaderMeta) {
-  const withTs = { ...meta, __cachedAt: Date.now() };
-  await AsyncStorage.multiSet([
-    [CACHE_KEY, JSON.stringify(data)],
-    [META_KEY, JSON.stringify(withTs)],
-  ]);
-}
-
-// ---------- Public loader ----------
-export async function loadPnpGuides(): Promise<LoaderResult<PnpGuides>> {
-  // Read existing meta for validators
-  let prevMeta: LoaderMeta | undefined;
-  try {
-    const raw = await AsyncStorage.getItem(META_KEY);
-    prevMeta = raw ? JSON.parse(raw) : undefined;
-  } catch {}
-
-  // Attempt remote with validators
-  try {
-    const headers: Record<string, string> = {};
-    if (prevMeta?.etag) headers["If-None-Match"] = prevMeta.etag;
-    if (prevMeta?.last_modified) headers["If-Modified-Since"] = prevMeta.last_modified;
-
-    const res = await fetch(PNP_GUIDES_URL, { headers });
-    const nowIso = new Date().toISOString();
-
-    if (res.status === 304) {
-      // Not modified ÔåÆ serve cache
-      const cache = await readCache();
-      if (cache?.data) {
-        const meta: LoaderMeta = {
-          ...prevMeta,
-          status: 304,
-          last_checked: nowIso,
-        };
-        return { ok: true, source: "cache", data: cache.data, meta };
-      }
-      // No cache despite 304: fall through to full fetch without validators
-    }
-
-    if (res.ok) {
-      const data = (await res.json()) as PnpGuides;
-      const meta: LoaderMeta = {
-        etag: res.headers.get("ETag") ?? undefined,
-        last_modified: res.headers.get("Last-Modified") ?? undefined,
-        status: 200,
-        last_checked: nowIso,
-      };
-      await writeCache(data, meta);
-      return { ok: true, source: "remote", data, meta };
-    }
-
-    // Remote failed ÔåÆ try cache
-    const cache = await readCache();
-    if (cache?.data) {
-      return cache;
-    }
-    return { ok: false, source: "local", data: null, error: `HTTP ${res.status}` };
-  } catch (e: any) {
-    // Network error ÔåÆ try cache
-    const cache = await readCache();
-    if (cache?.data) return cache;
-    return { ok: false, source: "local", data: null, error: e?.message || "network_error" };
-  }
-}
-
-// ---------- Profile ÔåÆ Categories mapping ----------
-export interface PnpProfileInput {
-  hasExpressEntryProfile?: boolean; // EE-aligned streams
-  hasJobOffer?: boolean;            // employer-driven / job offer
-  isTech?: boolean;                 // tech/IT occupation/experience
-  isHealth?: boolean;               // nurses, other health professions
-  isTrades?: boolean;               // skilled trades
-  isFrancophone?: boolean;          // French CLB ÔëÑ 7 typically
-  isIntlStudentOrGrad?: boolean;    // international student/graduate in Canada
-  hasProvincialTies?: boolean;      // relatives, study/work in province, invitations, etc.
-  isOccupationInDemand?: boolean;   // user says their NOC is in-demand / targeted
-}
-
-export function profileToCategoryFlags(p: PnpProfileInput): Set<PnpCategoryId> {
-  const out = new Set<PnpCategoryId>();
-  if (p.hasExpressEntryProfile) out.add("express_entry");
-  if (p.hasJobOffer) out.add("job_offer_opt");
-  if (p.isTech) out.add("tech");
-  if (p.isHealth) out.add("health");
-  if (p.isTrades) out.add("trades");
-  if (p.isFrancophone) out.add("french");
-  if (p.isIntlStudentOrGrad) out.add("intl_student");
-  if (p.hasProvincialTies) out.add("connection");
-  if (p.isOccupationInDemand) out.add("in_demand");
-  return out;
-}
-
-// Basic scorer: count of overlapping categories (ties broken by more specific streams first)
-export interface RankedStream extends PnpStream {
+// Ranked output shown on the screen
+export type RankedStream = PnpStream & {
   score: number;
-  matched: PnpCategoryId[];
+  matched: string[];     // which profile signals matched this stream
+};
+
+/** ──────────────── Storage keys ──────────────── **/
+const CACHE_KEY = "ms.pnp.guides.cache.v1";
+const META_KEY  = "ms.pnp.guides.meta.v1";
+
+/** ──────────────── Small cache utils ──────────────── **/
+async function readCache<T>(key: string): Promise<T | null> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch { return null; }
+}
+async function writeCache<T>(key: string, val: T): Promise<void> {
+  try { await AsyncStorage.setItem(key, JSON.stringify(val)); } catch {}
 }
 
-export function matchStreams(guides: PnpGuides, profile: PnpProfileInput, max = 12): RankedStream[] {
-  const wants = profileToCategoryFlags(profile);
-  const entries: RankedStream[] = guides.streams.map((s) => {
-    const matched = s.categories.filter(c => wants.has(c));
-    return { ...s, score: matched.length, matched };
-  });
+/** ──────────────── A4 loader ──────────────── **/
+export async function loadPnpGuides(): Promise<PnpResult> {
+  const [cached, meta0] = await Promise.all([
+    readCache<PnpGuides>(CACHE_KEY),
+    readCache<PnpMeta>(META_KEY),
+  ]);
 
-  // Sort: score desc ÔåÆ more specific (shorter category list) ÔåÆ province alpha ÔåÆ title
-  entries.sort((a, b) => {
+  const headers: Record<string, string> = {};
+  if (meta0?.etag)          headers["If-None-Match"] = meta0.etag;
+  if (meta0?.last_modified) headers["If-Modified-Since"] = meta0.last_modified;
+
+  let res: Response | null = null;
+  try {
+    // cache:"no-cache" ensures validators actually hit the network
+    res = await fetch(PNP_GUIDES_URL, { headers, cache: "no-cache", mode: "cors" as RequestMode });
+  } catch {
+    if (cached) {
+      const meta: PnpMeta = {
+        ...(meta0 ?? { status: 200 }),
+        last_checked: new Date().toISOString(),
+      };
+      return { source: "cache", data: cached, cachedAt: meta.__cachedAt ?? null, meta };
+    }
+    return {
+      source: "local",
+      data: { streams: [] },
+      cachedAt: null,
+      meta: { status: 200, last_checked: new Date().toISOString() },
+    };
+  }
+
+  // Real 304 path
+  if (res.status === 304 && cached) {
+    const nextMeta: PnpMeta = {
+      ...(meta0 ?? { status: 304 }),
+      status: 304,
+      last_checked: new Date().toISOString(),
+    };
+    await writeCache(META_KEY, nextMeta);
+    return {
+      source: "cache",
+      data: cached,
+      cachedAt: nextMeta.__cachedAt ?? null,
+      meta: nextMeta,
+    };
+  }
+
+  // 200 path
+  if (res.ok) {
+    const json = (await res.json()) as PnpGuides;
+    const etag = res.headers.get("etag") ?? undefined;
+    const last_modified = res.headers.get("last-modified") ?? undefined;
+
+    // ── 304 fallback: if server didn’t expose validators but body is unchanged, treat as validated
+    if (cached && !etag && !last_modified) {
+      try {
+        const same = JSON.stringify(json) === JSON.stringify(cached);
+        if (same) {
+          const nextMeta: PnpMeta = {
+            ...(meta0 ?? { status: 304 }),
+            status: 304,
+            __cachedAt: meta0?.__cachedAt, // keep original cachedAt
+            last_checked: new Date().toISOString(),
+          };
+          await writeCache(META_KEY, nextMeta);
+          return {
+            source: "cache",
+            data: cached,
+            cachedAt: nextMeta.__cachedAt ?? null,
+            meta: nextMeta,
+          };
+        }
+      } catch {}
+    }
+
+    // Fresh content (or validators present) → cache it
+    const now = Date.now();
+    const nextMeta: PnpMeta = {
+      status: 200,
+      etag,
+      last_modified,
+      __cachedAt: now,
+      last_checked: new Date().toISOString(),
+    };
+
+    await Promise.all([
+      writeCache(CACHE_KEY, json),
+      writeCache(META_KEY, nextMeta),
+    ]);
+
+    return { source: "remote", data: json, cachedAt: now, meta: nextMeta };
+  }
+
+  // non-200/304 — fall back to cache if possible
+  if (cached) {
+    const meta: PnpMeta = {
+      ...(meta0 ?? { status: 200 }),
+      last_checked: new Date().toISOString(),
+    };
+    return { source: "cache", data: cached, cachedAt: meta.__cachedAt ?? null, meta };
+  }
+
+  // final fallback
+  return {
+    source: "local",
+    data: { streams: [] },
+    cachedAt: null,
+    meta: { status: 200, last_checked: new Date().toISOString() },
+  };
+}
+
+/** ──────────────── Matching helper ──────────────── **/
+export function matchStreams(profile: PnpProfileInput, guides: PnpGuides): RankedStream[] {
+  const out: RankedStream[] = [];
+
+  for (const s of guides.streams ?? []) {
+    let score = 0;
+    const matched: string[] = [];
+
+    const has = (tag: string) => s.categories?.includes(tag);
+
+    if (profile.hasExpressEntryProfile && has("express_entry")) { score += 3; matched.push("Express Entry–aligned"); }
+    if (profile.hasJobOffer && has("job_offer_opt"))           { score += 2; matched.push("Job offer"); }
+
+    if (profile.isTech && has("tech"))       { score += 2; matched.push("Tech/IT"); }
+    if (profile.isHealth && has("health"))   { score += 2; matched.push("Health"); }
+    if (profile.isTrades && has("trades"))   { score += 2; matched.push("Trades"); }
+
+    if (profile.isFrancophone && has("franco"))   { score += 2; matched.push("Francophone"); }
+    if (profile.isIntlStudent && has("student"))  { score += 1; matched.push("Intl student"); }
+    if (profile.hasTies && has("ties"))           { score += 1; matched.push("Ties"); }
+    if (profile.inDemand && has("in_demand"))     { score += 1; matched.push("In-demand"); }
+
+    // Bonus for multiple matches
+    score += Math.max(0, matched.length - 1);
+
+    out.push({ ...s, score, matched });
+  }
+
+  out.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
-    if (a.categories.length !== b.categories.length) return a.categories.length - b.categories.length;
-    const pa = a.province.localeCompare(b.province);
-    if (pa !== 0) return pa;
+    if (a.province !== b.province) return a.province.localeCompare(b.province);
     return a.title.localeCompare(b.title);
   });
 
-  // If user provided nothing, just show all (alphabetical by provinceÔåÆtitle)
-  const anyFlag = wants.size > 0;
-  const list = anyFlag ? entries.filter(e => e.score > 0) : entries;
-  return list.slice(0, max);
+  return out;
 }
-
