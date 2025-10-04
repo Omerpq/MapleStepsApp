@@ -47,7 +47,7 @@
     "jest-expo": "~54.0.11",
     "react-test-renderer": "^19.1.0",
     "ts-jest": "^29.4.1",
-    "typecheck": "tsc --noEmit --pretty false",
+    
     "typescript": "^5.9.3"
   },
   "engines": {
