@@ -201,7 +201,7 @@ React.useLayoutEffect(() => {
           </View>
         )}
 
-        <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
+<View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10, marginTop: 12 }}>
           <Pressable
   onPress={load}
   disabled={loading}
