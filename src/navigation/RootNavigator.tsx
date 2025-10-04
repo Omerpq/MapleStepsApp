@@ -29,6 +29,9 @@ import EAPRBuilder from "../screens/EAPRBuilder";
 
 import PNPMapper from "../screens/PNPMapper";
 
+
+import PRTracker from "../screens/PRTracker";
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -104,6 +107,11 @@ export default function RootNavigator() {
         name="EAPRBuilder"
         component={EAPRBuilder}
         options={{ title: "e-APR Builder", headerShown: true }}
+      />
+      <Stack.Screen
+        name="PRTracker"
+        component={PRTracker}
+        options={{ title: "PR Tracker", headerShown: true }}
       />
 
 
