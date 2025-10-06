@@ -74,11 +74,13 @@ jest.mock("expo-document-picker", () => ({
   ((b64: string) => Buffer.from(b64, "base64").toString("binary"));
 
 import { ensureMasterKey, importFromPicker, listItems } from "../vault";
+import * as SecureStore from "expo-secure-store";
 
-beforeEach(() => {
+beforeEach(async () => {
   for (const k of Object.keys(mem)) delete mem[k];
-  secureKey = null;
+  await (SecureStore as any).deleteItemAsync();
 });
+
 
 describe("Vault (web) — import & list", () => {
   it("generates a 32-byte base64 master key", async () => {
