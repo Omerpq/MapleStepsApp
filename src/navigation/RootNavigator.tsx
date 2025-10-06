@@ -24,13 +24,17 @@ import Paywall from "../screens/Paywall";
 import ECAWizard from "../screens/ECAWizard";
 
 import EEProfileChecklist from "../screens/EEProfileChecklist";
-import EAPRBuilder from "../screens/EAPRBuilder";
+
 
 
 import PNPMapper from "../screens/PNPMapper";
 
 
 import PRTracker from "../screens/PRTracker";
+
+import EAPRBuilder from "../screens/EAPRBuilder";
+
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -113,6 +117,12 @@ export default function RootNavigator() {
         component={PRTracker}
         options={{ title: "PR Tracker", headerShown: true }}
       />
+
+      <Stack.Screen
+  name="Vault"
+  component={VaultScreen}
+  options={{ headerShown: false }}
+/>
 
 
       {__DEV__ && (

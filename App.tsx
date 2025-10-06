@@ -1,4 +1,6 @@
 // App.tsx
+import 'react-native-get-random-values';
+
 import React from 'react';
 import { LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -14,6 +16,21 @@ import NocDevScreen from './src/dev/NocDevScreen';
 import { migrateUpdatesCachesOnce } from './src/services/updates';
 import { notifications } from './src/services/notifications';
 import { initIAP, endIAP } from './src/services/payments';
+
+
+// ---- RNG (web/native-safe) -------------------------------------
+function getSecureRandomBytes(len: number): Uint8Array {
+  const g: any = globalThis as any;
+  if (g.crypto && typeof g.crypto.getRandomValues === "function") {
+    const out = new Uint8Array(len);
+    g.crypto.getRandomValues(out);
+    return out;
+  }
+  // Dev fallback (NOT cryptographically strong) — acceptable only in local dev
+  const out = new Uint8Array(len);
+  for (let i = 0; i < len; i++) out[i] = Math.floor(Math.random() * 256);
+  return out;
+}
 
 // Silence Expo Go remote-push warning + known dev log
 LogBox.ignoreLogs([
