@@ -5,7 +5,8 @@ import { ECA_FOCUS_FLOOR_KEY, ECA_TASK_ID } from '../services/eca';
 
 import * as ECA from '../services/eca';
 
-import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo, useState, useLayoutEffect, useRef, useCallback } from "react";
+
 
 import { View, Text, ScrollView, FlatList, Pressable, ActivityIndicator, StyleSheet, Switch, useWindowDimensions, Platform } from 'react-native';
 
@@ -26,7 +27,7 @@ import { getPersistedState } from '../services/payments';
 
 import { __devSetSubscribed } from '../services/payments';
 
-
+import { colors } from "../theme/colors";
 
 // Wraps rows; on web we render a <div> to avoid nested <button> warnings.
 // We still handle clicks on web via onClick.
@@ -205,7 +206,24 @@ async function hardReseedActionPlan() {
 }
 
 export default function ActionPlanScreen() {
+
   const navigation = useNavigation<any>();
+  // S5-03 — Help button in header
+useLayoutEffect(() => {
+  navigation.setOptions({
+    headerRight: () => (
+      <Pressable
+        onPress={() => navigation.navigate("Feedback" as never)}
+        style={{ paddingHorizontal: 8, paddingVertical: 4 }}
+        accessibilityLabel="Open Help & Feedback"
+      >
+        <Text style={{ color: colors.mapleRed, fontWeight: "600" }}>Help</Text>
+      </Pressable>
+    ),
+  });
+}, [navigation]);
+
+
 
 // inside ActionPlanScreen()
 const [isSubscribed, setIsSubscribed] = useState(false);

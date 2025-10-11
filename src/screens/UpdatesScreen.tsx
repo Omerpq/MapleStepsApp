@@ -1,5 +1,6 @@
 // src/screens/UpdatesScreen.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useLayoutEffect } from "react";
+
 import {
   View,
   Text,
@@ -56,6 +57,9 @@ import { RULES_CONFIG } from "../services/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { sourceTitle, makeNotice, syncQualifier, tsFrom, fmtDateTimeLocal } from "../utils/freshness";
 
+import { useNavigation } from "@react-navigation/native";
+
+
 if (__DEV__) {
   console.log("UPDATES_URLS", RULES_CONFIG.roundsUrl, RULES_CONFIG.feesUrl);
 }
@@ -91,6 +95,22 @@ const formatCad = (v: number | string | undefined) => {
 };
 
 export default function UpdatesScreen() {
+    // S5-03 — Help button in header
+  const navigation = useNavigation();
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Feedback" as never)}
+          style={{ paddingHorizontal: 8, paddingVertical: 4 }}
+          accessibilityLabel="Open Help & Feedback"
+        >
+          <Text style={{ color: colors.mapleRed, fontWeight: "600" }}>Help</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
   // Rounds
   const [rounds, setRounds] = useState<Round[]>([]);
   const [roundsSrc, setRoundsSrc] = useState<"remote"|"cache"|"local">("local");

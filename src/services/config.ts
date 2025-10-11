@@ -3,6 +3,12 @@
 // If any URL is unreachable, loaders fall back to cached copy, then to bundled JSON.
 
 export const RULES_CONFIG = {
+    feedbackEmail: "omerpq@gmail.com",
+
+    // S5-03 — Help & Feedback (optional; leave commented if you prefer email-only)
+  // feedbackUrl: "https://your-webhook-endpoint.example/ingest", // if present, app POSTs JSON here first
+  // feedbackEmail: "support@maplesteps.app",                      // fallback/primary mailto target
+
   crsParamsUrl: 'https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/crs.params.json',
   fswParamsUrl: 'https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/fsw67.params.json',
   roundsUrl:    'https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/rounds.remote.json',

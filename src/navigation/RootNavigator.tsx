@@ -26,6 +26,8 @@ import ECAWizard from "../screens/ECAWizard";
 
 import EEProfileChecklist from "../screens/EEProfileChecklist";
 
+// S5-03 — Help & Feedback
+import Feedback from "../screens/Feedback";
 
 
 import PNPMapper from "../screens/PNPMapper";
@@ -125,6 +127,13 @@ export default function RootNavigator() {
   component={VaultScreen}
   options={{ headerShown: false }}
 />
+
+      {/* S5-03 — Help & Feedback */}
+      <Stack.Screen
+        name="Feedback"
+        component={Feedback}
+        options={{ title: "Help & Feedback" }}
+      />
 
 
       {__DEV__ && (
