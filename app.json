@@ -12,15 +12,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "scheme": "maplesteps",
-    "plugins": ["expo-notifications"],
-
+    "plugins": [
+      "expo-notifications",
+      "expo-secure-store"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.omerpq.maplesteps"
     },
-
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -31,15 +31,20 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "category": ["BROWSABLE", "DEFAULT"],
-          "data": [{ "scheme": "maplesteps" }]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "maplesteps"
+            }
+          ]
         }
       ]
     },
-
     "web": {
       "favicon": "./assets/favicon.png"
     }
   }
-
 }

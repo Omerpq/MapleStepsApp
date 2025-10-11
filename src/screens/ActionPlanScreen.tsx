@@ -805,6 +805,25 @@ onPress={() => {
           
       </View>
       
+      {/* Quick entry: Landing & Post-Landing */}
+<View style={{ marginTop: 8, marginBottom: 8 }}>
+  <Pressable
+    onPress={() =>
+      isSubscribed
+        ? navigation.navigate('LandingChecklist')
+        : navigation.navigate('Paywall', { from: 'landing_entry' })
+    }
+    accessibilityRole="button"
+    accessibilityLabel="Open Landing & Post-Landing"
+    style={[styles.chipPrimary, { backgroundColor: '#b91c1c' }]} // maple red
+  >
+    <Text style={[styles.chipPrimaryText, { color: '#ffffff' }]}>
+      Open Landing & Post-Landing
+    </Text>
+  </Pressable>
+</View>
+
+
 
       {/* List */}
       <FlatList
@@ -844,9 +863,6 @@ ListHeaderComponentStyle={{ backgroundColor: 'transparent', marginBottom: 8 }}
 
 stickyHeaderIndices={nextUp ? [0] : undefined}
 />
-
-
-
 
 </View>
   );
