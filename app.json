@@ -18,9 +18,13 @@
       "expo-secure-store"
     ],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.omerpq.maplesteps"
-    },
+  "supportsTablet": true,
+  "bundleIdentifier": "com.omerpq.maplesteps",
+  "infoPlist": {
+    "UIBackgroundModes": ["fetch"]
+  }
+},
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

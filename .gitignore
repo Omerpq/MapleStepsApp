@@ -39,3 +39,5 @@ android/app/debug.keystore
 
 # Ignore ZIP artifacts
 *.zip
+
+S5-02_typecheck.txt

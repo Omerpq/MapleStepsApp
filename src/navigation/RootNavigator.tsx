@@ -126,12 +126,6 @@ export default function RootNavigator() {
   options={{ headerShown: false }}
 />
 
-      <Stack.Screen
-  name="Vault"
-  component={VaultScreen}
-  options={{ headerShown: false }}
-/>
-
 
       {__DEV__ && (
         <Stack.Screen

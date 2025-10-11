@@ -1,7 +1,12 @@
 // App.tsx
 import 'react-native-get-random-values';
+// S5-02 Background refresh
+import { getBackgroundState } from "./src/services/background";
+// S5-02 Analytics
+import { trackScreenView, getAnalyticsState } from "./src/services/analytics";
 
-import React from 'react';
+
+import React, { useEffect, useRef } from 'react';
 import { LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme, Theme } from '@react-navigation/native';
@@ -68,6 +73,9 @@ const linking = {
 };
 
 export default function App() {
+// S5-02 Analytics — nav refs to detect active route changes
+const navigationRef = useRef<any>(null);
+const routeNameRef = useRef<string | null>(null);
 
   React.useEffect(() => {
     // one-time app bootstraps
@@ -80,6 +88,12 @@ export default function App() {
       endIAP();                // remove listeners + end IAP connection
     };
   }, []);
+// S5-02 Background — ensure task module is loaded & log state (DEV only)
+useEffect(() => {
+  getBackgroundState().then((s) => {
+    if (__DEV__) console.log("[S5-02] Background state", s);
+  });
+}, []);
 
   if (SHOW_NOC_DEV) {
     // Minimal wrapper; no nav/rq needed for this test
@@ -89,7 +103,31 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <NavigationContainer theme={navTheme} linking={linking}>
+        <NavigationContainer
+  ref={navigationRef}
+  theme={navTheme}
+  linking={linking}
+  onReady={() => {
+    const current = navigationRef.current?.getCurrentRoute()?.name as string | undefined;
+    routeNameRef.current = current ?? null;
+    // fire initial screen view only if opted in
+    getAnalyticsState().then((s) => {
+      if (s.optedIn && current) trackScreenView(current);
+    });
+  }}
+  onStateChange={() => {
+    const current = navigationRef.current?.getCurrentRoute()?.name as string | undefined;
+    if (!current) return;
+    if (routeNameRef.current !== current) {
+      routeNameRef.current = current;
+      // fire screen view only if opted in
+      getAnalyticsState().then((s) => {
+        if (s.optedIn) trackScreenView(current);
+      });
+    }
+  }}
+>
+
           <StatusBar style="light" />
           <RootNavigator />
         </NavigationContainer>

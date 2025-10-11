@@ -22,6 +22,24 @@ import {
 } from "../services/updates";
 import { loadNoc, loadNocCategories } from "../services/noc";
 import { loadNocManifest, type NocManifest } from "../services/nocRules";
+// S5-02 — Background refresh controls
+import {
+  enableBackgroundRefresh,
+  disableBackgroundRefresh,
+  runBackgroundRefreshNow,
+  getBackgroundState,
+  type BackgroundOptState,
+} from "../services/background";
+
+// S5-02 — Analytics controls
+import {
+  enableAnalytics,
+  disableAnalytics,
+  getAnalyticsState,
+  trackEvent,
+  type AnalyticsState,
+} from "../services/analytics";
+
 
 import {
   primeCrsParams,
@@ -86,7 +104,14 @@ export default function UpdatesScreen() {
   const [feesSrc, setFeesSrc] = useState<"remote"|"cache"|"local">("local");
   const [feesCachedAt, setFeesCachedAt] = useState<number | null>(null);
   const [feesNotice, setFeesNotice] = useState<string | null>(null);
-  
+  // S5-02 — Background refresh local state
+const [bg, setBg] = useState<BackgroundOptState | null>(null);
+const [bgBusy, setBgBusy] = useState(false);
+
+// S5-02 — Analytics local state
+const [an, setAn] = useState<AnalyticsState | null>(null);
+const [anBusy, setAnBusy] = useState(false);
+
 
 
     // NOC (rules repo) manifest
@@ -152,7 +177,6 @@ const [nocCachedAt, setNocCachedAt] = useState<number | null>(null);
 
     const lines: string[] = [];
     let ok = 0, total = 0;
-clearIRCCCache
     const add = (line: string) => lines.push(`• ${line}`);
     const run = async <T,>(name: string, fn: () => Promise<T>, fmt?: (x: T) => string) => {
       total++;
@@ -165,15 +189,6 @@ clearIRCCCache
         add(`${name}: failed (${e?.message || "error"})`);
       }
     };
-const clearNocCache = async () => {
-  await AsyncStorage.removeItem("ms_noc_manifest_v3");
-  // Re-fetch NOC manifest right away
-  try {
-    const n = await loadNocManifest();
-    applyNoc(n as any);
-  } catch {}
-  Alert.alert("NOC cache", "Cleared and reloaded.");
-};
 
     await run("Rounds", async () => {
       const r = await loadRounds();
@@ -199,6 +214,108 @@ const clearNocCache = async () => {
     setRefreshing(false);
     Alert.alert("Refresh all", `${ok}/${total} succeeded\n\n${lines.join("\n")}`);
   };
+// --- S5-02: Background refresh handlers (DEV) ---
+const onBgOptIn = async () => {
+  if (bgBusy) return;
+  setBgBusy(true);
+  try {
+    const s = await enableBackgroundRefresh({ minimumInterval: 3600, startOnBoot: true });
+    setBg(s);
+    if (__DEV__) console.log("[BG] enabled", s);
+  } finally {
+    setBgBusy(false);
+  }
+};
+
+const onBgOptOut = async () => {
+  if (bgBusy) return;
+  setBgBusy(true);
+  try {
+    const s = await disableBackgroundRefresh();
+    setBg(s);
+    if (__DEV__) console.log("[BG] disabled", s);
+  } finally {
+    setBgBusy(false);
+  }
+};
+
+const onBgRunNow = async () => {
+  if (bgBusy) return;
+  setBgBusy(true);
+  try {
+    const r = await runBackgroundRefreshNow();
+    const s = await getBackgroundState();
+    setBg(s);
+    Alert.alert(
+      "Background refresh (manual)",
+      r === 2 ? "New data" : r === 1 ? "No new data" : "Failed"
+    );
+  } finally {
+    setBgBusy(false);
+  }
+};
+
+const onBgShowState = async () => {
+  try {
+    const s = await getBackgroundState();
+    setBg(s);
+    const lines = [
+      `optedIn: ${s.optedIn}`,
+      `registered: ${s.isRegistered}`,
+      `status: ${s.status}`,
+      `lastRun: ${s.lastRunISO ?? "—"}`,
+      s.lastResult ? `lastResult: ${JSON.stringify(s.lastResult)}` : `lastResult: —`,
+    ];
+    Alert.alert("Background state", lines.join("\n"));
+  } catch {}
+};
+// --- end S5-02 ---
+// --- S5-02: Analytics handlers (DEV) ---
+const onAnEnable = async () => {
+  if (anBusy) return;
+  setAnBusy(true);
+  try {
+    const s = await enableAnalytics();
+    setAn(s);
+    if (__DEV__) console.log("[AN] enabled", s);
+  } finally {
+    setAnBusy(false);
+  }
+};
+
+const onAnDisable = async () => {
+  if (anBusy) return;
+  setAnBusy(true);
+  try {
+    const s = await disableAnalytics();
+    setAn(s);
+    if (__DEV__) console.log("[AN] disabled", s);
+  } finally {
+    setAnBusy(false);
+  }
+};
+
+const onAnShowState = async () => {
+  try {
+    const s = await getAnalyticsState();
+    setAn(s);
+    const lines = [
+      `optedIn: ${s.optedIn}`,
+      s.lastEvent ? `lastEvent: ${s.lastEvent.type}:${s.lastEvent.name}` : "lastEvent: —",
+      `bufferSize: ${s.bufferSize}`,
+    ];
+    Alert.alert("Analytics state", lines.join("\n"));
+  } catch {}
+};
+
+// Optional: fire a test event (uses opt-in)
+const onAnFireTest = async () => {
+  await trackEvent("updates_dev_test", { when: new Date().toISOString() });
+  const s = await getAnalyticsState();
+  setAn(s);
+  Alert.alert("Analytics", "Test event tracked (if opted-in).");
+};
+// --- end S5-02 ---
 
   useEffect(() => {
     (async () => {
@@ -220,6 +337,14 @@ const clearNocCache = async () => {
 
     })();
   }, []);
+// S5-02 — Load current background state on mount
+useEffect(() => {
+  getBackgroundState().then(setBg).catch(() => {});
+}, []);
+// S5-02 — Load current analytics state on mount
+useEffect(() => {
+  getAnalyticsState().then(setAn).catch(() => {});
+}, []);
 
   const latest = rounds && rounds.length ? rounds[0] : null;
   const showCategoryHint = isCategoryDraw(latest?.category);
@@ -242,11 +367,7 @@ const clearNocCache = async () => {
 };
 
   const logCache = async () => {
-    {__DEV__ && (
-  <TouchableOpacity onPress={clearNocCache} style={{ marginBottom: 12 }}>
-    <Text style={{ color: "violet" }}>🗑 Clear NOC cache</Text>
-  </TouchableOpacity>
-)}
+  
 
     if (!__DEV__) return;
     const [r, f] = await Promise.all([
@@ -282,11 +403,84 @@ const clearNocCache = async () => {
         </TouchableOpacity>
 
         {__DEV__ && (
-          <TouchableOpacity onPress={refreshAllDev} style={styles.refreshBtn}>
-            <Text style={styles.refreshText}>🧪 Refresh all</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+  <View style={{ flexDirection: "row", marginLeft: 8, gap: 8 }}>
+    {/* BG panel */}
+    <View>
+      <TouchableOpacity
+        onPress={onBgOptIn}
+        disabled={bgBusy}
+        style={[styles.refreshBtn, bgBusy && { opacity: 0.6 }]}
+      >
+        <Text style={styles.refreshText}>BG: Opt-in</Text>
+      </TouchableOpacity>
+<TouchableOpacity
+  onPress={onBgShowState}
+  style={[styles.refreshBtn, { marginTop: 6 }]}
+>
+  <Text style={styles.refreshText}>BG: Show state</Text>
+</TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={onBgOptOut}
+        disabled={bgBusy}
+        style={[styles.refreshBtn, bgBusy && { opacity: 0.6, marginTop: 6 }]}
+      >
+        <Text style={styles.refreshText}>BG: Opt-out</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={onBgRunNow}
+        disabled={bgBusy}
+        style={[styles.refreshBtn, bgBusy && { opacity: 0.6 }, { marginTop: 6 }]}
+      >
+        <Text style={styles.refreshText}>BG: Run now</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={onBgShowState}
+        style={[styles.refreshBtn, { marginTop: 6 }]}
+      >
+        <Text style={styles.refreshText}>
+          BG: {bg?.optedIn ? "ON" : "OFF"} · {bg?.isRegistered ? "Reg" : "NoReg"}
+        </Text>
+      </TouchableOpacity>
+    </View>
+
+    {/* AN panel */}
+    <View>
+      <TouchableOpacity
+        onPress={onAnEnable}
+        disabled={anBusy}
+        style={[styles.refreshBtn, anBusy && { opacity: 0.6 }]}
+      >
+        <Text style={styles.refreshText}>AN: Enable</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={onAnDisable}
+        disabled={anBusy}
+        style={[styles.refreshBtn, anBusy && { opacity: 0.6, marginTop: 6 }]}
+      >
+        <Text style={styles.refreshText}>AN: Disable</Text>
+      </TouchableOpacity>
+        <TouchableOpacity
+  onPress={onAnShowState}
+  style={[styles.refreshBtn, { marginTop: 6 }]}
+>
+  <Text style={styles.refreshText}>AN: Show state</Text>
+</TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={onAnFireTest}
+        style={[styles.refreshBtn, { marginTop: 6 }]}
+      >
+        <Text style={styles.refreshText}>AN: Fire test</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+)}
+
+</View>
 
       {(roundsSrc !== "remote" || feesSrc !== "remote") && (
         <View style={styles.notice}>
@@ -437,17 +631,7 @@ const clearNocCache = async () => {
     </ScrollView>
   );
 }
-{__DEV__ && (
-  <TouchableOpacity
-    onPress={async () => {
-      await AsyncStorage.removeItem("ms_noc_manifest_v4");
-      console.log("NOC manifest cache cleared");
-    }}
-    style={{ marginBottom: 12 }}
-  >
-    <Text style={{ color: "violet" }}>🗑 Clear NOC manifest cache</Text>
-  </TouchableOpacity>
-)}
+
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, padding: 16, backgroundColor: colors.background },
