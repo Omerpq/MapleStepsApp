@@ -15,6 +15,7 @@ import NOCVerify from "../screens/NOCVerify";
 
 import ProofOfFunds from "../screens/ProofOfFunds";
 
+import LandingChecklist from "../screens/LandingChecklist";
 
 // 👇 dev-only diagnostics screen (hidden from normal users)
 import NocDevScreen from "../dev/NocDevScreen";
@@ -117,6 +118,13 @@ export default function RootNavigator() {
         component={PRTracker}
         options={{ title: "PR Tracker", headerShown: true }}
       />
+      <Stack.Screen name="LandingChecklist" component={LandingChecklist} options={{ title: "Landing & Post-Landing" }} />
+
+      <Stack.Screen
+  name="Vault"
+  component={VaultScreen}
+  options={{ headerShown: false }}
+/>
 
       <Stack.Screen
   name="Vault"

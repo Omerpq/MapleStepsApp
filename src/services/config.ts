@@ -32,6 +32,9 @@ export const PNP_GUIDES_URL =
 export const POF_THRESHOLDS_URL =
   'https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/pof.thresholds.remote.json';
 
+export const LANDING_GUIDES_URL = "https://raw.githubusercontent.com/Omerpq/maplesteps-rules/main/data/content/guides/landing.json";
+
+
 // ---- In-app purchase SKUs (must match your store IDs) ----
 export const IAP_SKUS_ANDROID = [
   'premium_monthly',   // <-- change to your Play Console product IDs
