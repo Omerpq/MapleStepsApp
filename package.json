@@ -46,7 +46,6 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@expo/webpack-config": "^19.0.0",
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^13.3.1",
     "@types/crypto-js": "^4.2.2",
@@ -61,8 +60,7 @@
     "jest-expo": "~54.0.11",
     "react-test-renderer": "^19.1.0",
     "ts-jest": "^29.4.1",
-    "typescript": "^5.9.3",
-    "webpack": "^5.102.1"
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=20 <23",
