@@ -2,15 +2,19 @@
   "expo": {
     "name": "maplesteps",
     "slug": "maplesteps",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "image": "./assets/splash/parliament-clean-1500x3000.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0B1220",
+      "dark": {
+        "image": "./assets/splash/parliament-clean-1500x3000.png",
+        "backgroundColor": "#0B1220"
+      }
     },
     "scheme": "maplesteps",
     "plugins": [
@@ -18,13 +22,15 @@
       "expo-secure-store"
     ],
     "ios": {
-  "supportsTablet": true,
-  "bundleIdentifier": "com.omerpq.maplesteps",
-  "infoPlist": {
-    "UIBackgroundModes": ["fetch"]
-  }
-},
-
+      "supportsTablet": true,
+      "bundleIdentifier": "com.omerpq.maplesteps",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "fetch"
+        ]
+      }
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -32,6 +38,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.omerpq.maplesteps",
+      "versionCode": 1,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -48,7 +55,14 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+  "bundler": "metro",
+  "favicon": "./assets/favicon.png"
+},
+
+    "extra": {
+      "eas": {
+        "projectId": "0c522a76-c73f-4d0e-9b6a-1540e95bbf03"
+      }
     }
   }
 }
