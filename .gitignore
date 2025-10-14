@@ -71,3 +71,12 @@ android/release.keystore
 
 # --- iOS (if present) ---
 ios/build/
+# local bundles/archives
+*.bundle
+*.tar.gz
+
+# temp/backup files
+*.bak
+
+# local scripts you don't want in repo
+patch-*.cjs
