@@ -2,6 +2,39 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, TextInput } from "react-native";
 import { getName, setName, onNameChanged, clearName } from "../services/profile";
+import { LinearGradient } from "expo-linear-gradient";
+import { FontAwesome5 } from "@expo/vector-icons";
+
+function caHourToronto() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  return Number(parts.find(p => p.type === "hour")?.value ?? "0") || 0;
+}
+
+type Phase = "night" | "dawn" | "day" | "evening";
+function phaseForHour(h: number): Phase {
+  if (h >= 22 || h < 5) return "night";
+  if (h >= 5 && h < 8) return "dawn";
+  if (h >= 8 && h < 17) return "day";
+  return "evening";
+}
+
+// Always return exactly two color stops
+function gradientForPhase(p: Phase): [string, string] {
+  switch (p) {
+    case "night":   return ["#0B1220", "#16223A"]; // deep navy → ink
+    case "dawn":    return ["#1B2A3A", "#2B2A3F"]; // slate → muted plum
+    case "day":     return ["#0F172A", "#1E293B"]; // navy → steel
+    case "evening": return ["#24122E", "#3B1D4A"]; // aubergine → plum
+    default:        return ["#0F172A", "#1E293B"]; // fallback (satisfy TS)
+  }
+}
+
+
+
 export default function WelcomeHeader({ children }: { children?: React.ReactNode }) {
   const [editing, setEditing] = useState(false);
   const [name, setNameState] = useState<string>("");
@@ -25,9 +58,56 @@ useEffect(() => {
   const off = onNameChanged((n) => setNameState(n.trim()));
   return off; // unsubscribe on unmount
 }, []);
+const phase = phaseForHour(caHourToronto());
+const grad = React.useMemo(() => gradientForPhase(phase), [phase]);
+
 
   return (
-    <View style={{ backgroundColor: "#0F172A", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+  <View
+    style={{
+      borderRadius: 16,
+      overflow: "hidden",
+      marginBottom: 10,
+      shadowColor: "#000",
+      shadowOpacity: 0.18,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 5,
+    }}
+  >
+    <LinearGradient
+      colors={grad}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{ padding: 14, borderRadius: 16 }}
+    >
+      {/* subtle glassy border */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          left: 0, right: 0, top: 0, bottom: 0,
+          borderColor: "rgba(255,255,255,0.08)",
+          borderWidth: 1,
+          borderRadius: 16,
+        }}
+      />
+      {/* oversized, cropped maple watermark (very subtle) */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          right: -28,          // push off the edge so only a slice shows
+          top: -18,
+          opacity: 0.030,      // whisper-quiet
+          transform: [{ rotate: "-28deg" }],
+        }}
+      >
+  <FontAwesome5 name="canadian-maple-leaf" size={160} color="#ffffff" />
+</View>
+
+
+
       <Text style={{ fontSize: 16, fontWeight: "600", color: "#FFFFFF" }}>
         {getGreeting()}, {name ? name : "there"}
       </Text>
@@ -87,6 +167,8 @@ useEffect(() => {
           </Pressable>
         </View>
       )}
-    </View>
-  );
+        </LinearGradient>
+  </View>
+);
+
 }

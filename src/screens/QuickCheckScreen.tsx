@@ -19,6 +19,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { getName } from '../services/profile';
 
+import WelcomeTimeCard from "../components/WelcomeTimeCard";
 
 export default function QuickCheckScreen() {
   const [age, setAge] = useState("29");
@@ -94,8 +95,10 @@ useFocusEffect(
 
     </WelcomeHeader>
 
+{/* Greeting card with Canada time (no weather) */}
+<WelcomeTimeCard displayName={displayName} />
 
-          <Text style={styles.h1}>Eligibility check</Text>
+          <Text style={styles.h1}>Eligibility Check</Text>
     <Text style={{ color: "#6B7280", marginTop: 2, marginBottom: 6, fontSize: 12 }}>
       Based on Federal Skilled Worker (FSW-67) pass mark
     </Text>
@@ -125,9 +128,6 @@ useFocusEffect(
   onValueChange={(v: FswEducationKey) => setEducation(v)}
   testID="qc-education"
 >
-
-
-
 
       {FSW_EDUCATION_OPTIONS.map(o => (
   <Picker.Item key={o.value} label={o.label} value={o.value} />
