@@ -4,7 +4,11 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { colors } from "../theme/colors";
 import DataFreshness from "../components/DataFreshness";
 
+
+
+
 export default function SettingsScreen({ navigation }: any) {
+  
   const tapCount = useRef(0);
   const lastTapAt = useRef<number>(0);
 
@@ -29,11 +33,21 @@ export default function SettingsScreen({ navigation }: any) {
 
   return (
     <View style={styles.wrap}>
+      <TouchableOpacity onPress={() => navigation.navigate("AboutMapleSteps")} activeOpacity={0.7}>
+  <Text style={{ color: "#2563EB", textDecorationLine: "underline", paddingVertical: 12 }}>
+    About MapleSteps
+  </Text>
+</TouchableOpacity>
+
       <Text style={styles.h1}>Settings & Legal</Text>
       <Text>Region: Pakistan (default)</Text>
       <Text style={styles.disclaimer}>
         Disclaimer: This app provides educational information, not legal advice; not affiliated with IRCC.
       </Text>
+      {/* in-app links */}
+<View style={{ borderTopWidth: 1, borderTopColor: "#E5E7EB", marginTop: 12, paddingTop: 12 }}>
+</View>
+
 {/* Data freshness + manual refresh */}
     <DataFreshness />
       {/* Hidden dev opener (long-press OR 7 quick taps) */}
@@ -44,7 +58,9 @@ export default function SettingsScreen({ navigation }: any) {
       </TouchableOpacity>
     </View>
   );
+
 }
+
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, padding: 16, backgroundColor: "#fff" },

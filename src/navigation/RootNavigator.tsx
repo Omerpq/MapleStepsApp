@@ -17,16 +17,16 @@ import ProofOfFunds from "../screens/ProofOfFunds";
 
 import LandingChecklist from "../screens/LandingChecklist";
 
-// 👇 dev-only diagnostics screen (hidden from normal users)
+// ðŸ‘‡ dev-only diagnostics screen (hidden from normal users)
 import NocDevScreen from "../dev/NocDevScreen";
 
-// 👇 ADD THESE TWO IMPORTS
+// ðŸ‘‡ ADD THESE TWO IMPORTS
 import Paywall from "../screens/Paywall";
 import ECAWizard from "../screens/ECAWizard";
 
 import EEProfileChecklist from "../screens/EEProfileChecklist";
 
-// S5-03 — Help & Feedback
+// S5-03 â€” Help & Feedback
 import Feedback from "../screens/Feedback";
 
 
@@ -37,7 +37,14 @@ import PRTracker from "../screens/PRTracker";
 
 import EAPRBuilder from "../screens/EAPRBuilder";
 
+import AboutScreen from "../screens/AboutScreen";
+import PolicyScreen from "../screens/PolicyScreen";
+import TermsScreen from "../screens/TermsScreen";
 
+// anchor: brand-imports
+import { Image } from "react-native";
+
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -46,18 +53,103 @@ const Stack = createNativeStackNavigator();
 function Tabs() {
   return (
     <Tab.Navigator
-      screenOptions={{ headerShown: true, tabBarActiveTintColor: colors.mapleRed }}
+      screenOptions={{
+        headerShown: true,
+headerTitleAlign: "left",
+tabBarActiveTintColor: colors.mapleRed,
+tabBarLabelStyle: { fontSize: 10 },
+headerLeft: () => (
+  <Image
+    source={require("../../assets/brand/logo-glyph.png")}
+    style={{ width: 24, height: 24, marginLeft: 12 }}
+    resizeMode="contain"
+    accessibilityLabel="MapleSteps"
+  />
+),
+
+      }}
     >
-      <Tab.Screen name="QuickCheck" component={QuickCheckScreen} options={{ title: "QuickCheck" }} />
-      <Tab.Screen name="Score" component={ScoreScreen} options={{ title: "Score" }} />
-      <Tab.Screen name="ActionPlan" component={ActionPlanScreen} options={{ title: "Action Plan" }} />
-      <Tab.Screen name="Timeline" component={TimelineScreen} options={{ title: "Timeline" }} />
-      <Tab.Screen name="Updates" component={UpdatesScreen} options={{ title: "Updates" }} />
-      <Tab.Screen name="Vault" component={VaultScreen} options={{ title: "Vault" }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: "Settings" }} />
+      <Tab.Screen
+        name="QuickCheck"
+        component={QuickCheckScreen}
+        options={{
+    title: "QuickCheck",
+    tabBarLabel: "Eligibility",
+    tabBarIcon: ({ color, size }) => (
+      <MaterialCommunityIcons name="clipboard-check-outline" size={size} color={color} />
+    ),
+  }}
+      />
+      <Tab.Screen
+  name="Score"
+  component={ScoreScreen}
+  options={{
+    title: "Score",
+    tabBarIcon: ({ color, size }) => (
+      <MaterialCommunityIcons name="trophy-outline" size={size} color={color} />
+    ),
+  }}
+/>
+
+      
+      
+      
+      <Tab.Screen
+  name="ActionPlan"
+  component={ActionPlanScreen}
+  options={{
+    title: "Action Plan",
+    tabBarLabel: "Plan",
+    tabBarIcon: ({ color, size }) => (
+      <MaterialCommunityIcons name="playlist-check" size={size} color={color} />
+    ),
+  }}
+/>
+
+      <Tab.Screen
+  name="Timeline"
+  component={TimelineScreen}
+  options={{
+    title: "Timeline",
+    tabBarIcon: ({ color, size }) => (
+      <MaterialCommunityIcons name="timeline-clock-outline" size={size} color={color} />
+    ),
+  }}
+/>
+      <Tab.Screen
+  name="Updates"
+  component={UpdatesScreen}
+  options={{
+    title: "Updates",
+    tabBarIcon: ({ color, size }) => (
+      <MaterialCommunityIcons name="update" size={size} color={color} />
+    ),
+  }}
+/>
+      <Tab.Screen
+  name="Vault"
+  component={VaultScreen}
+  options={{
+    title: "Vault",
+    tabBarIcon: ({ color, size }) => (
+      <MaterialCommunityIcons name="shield-lock-outline" size={size} color={color} />
+    ),
+  }}
+/>
+      <Tab.Screen
+  name="Settings"
+  component={SettingsScreen}
+  options={{
+    title: "Settings",
+    tabBarIcon: ({ color, size }) => (
+      <MaterialCommunityIcons name="cog-outline" size={size} color={color} />
+    ),
+  }}
+/>
     </Tab.Navigator>
   );
 }
+
 
 export default function RootNavigator() {
   return (
@@ -74,7 +166,7 @@ export default function RootNavigator() {
       <Stack.Screen
         name="Paywall"
         component={Paywall}
-        options={{ title: "Go Premium" }}  // no presentation:"modal"
+        options={{ title: "" }}  // no presentation:"modal"
       />
 
       <Stack.Screen
@@ -85,7 +177,7 @@ export default function RootNavigator() {
       <Stack.Screen
         name="LanguagePlanner"
         component={LanguagePlanner}
-        options={{ title: "Language Planner" }}
+        options={{ title: "" }}
       />
       <Stack.Screen
         name="NOCVerify"
@@ -118,9 +210,14 @@ export default function RootNavigator() {
       <Stack.Screen
         name="PRTracker"
         component={PRTracker}
-        options={{ title: "PR Tracker", headerShown: true }}
+        options={{ title: "", headerShown: true }}
       />
-      <Stack.Screen name="LandingChecklist" component={LandingChecklist} options={{ title: "Landing & Post-Landing" }} />
+      <Stack.Screen
+  name="LandingChecklist"
+  component={LandingChecklist}
+  options={{ headerTitle: "" }}
+/>
+
 
       <Stack.Screen
   name="Vault"
@@ -128,12 +225,31 @@ export default function RootNavigator() {
   options={{ headerShown: false }}
 />
 
-      {/* S5-03 — Help & Feedback */}
+      {/* S5-03 â€” Help & Feedback */}
       <Stack.Screen
-        name="Feedback"
-        component={Feedback}
-        options={{ title: "Help & Feedback" }}
-      />
+  name="Feedback"
+  component={Feedback}
+  options={{ headerTitle: "" }}
+/>
+
+
+        <Stack.Screen
+            name="AboutMapleSteps"
+            component={AboutScreen}
+            options={{ title: "" }}
+            />
+
+        <Stack.Screen
+            name="Policy"
+            component={PolicyScreen}
+            options={{ title: "" }}
+            />
+
+            <Stack.Screen
+            name="Terms"
+            component={TermsScreen}
+            options={{ title: "" }}
+            />
 
 
       {__DEV__ && (

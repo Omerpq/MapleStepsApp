@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, StyleSheet, Switch } from "react-native";
+import { View, Text, TextInput, StyleSheet, Switch, ScrollView, Modal, Pressable, TouchableOpacity } from "react-native";
 import PrimaryButton from "../components/PrimaryButton";
 import { colors } from "../theme/colors";
 import { calculateFsw67, primeFswParams, getFswVersion, getFswLastSynced } from "../services/fsw67";
@@ -13,6 +13,11 @@ import { Picker } from "@react-native-picker/picker";
 import { FSW_EDUCATION_OPTIONS, type FswEducationValue } from "../constants/education";
 
 import NocBadge from "../components/NocBadge";
+import WelcomeHeader from "../components/WelcomeHeader";
+
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+import { getName } from '../services/profile';
 
 
 export default function QuickCheckScreen() {
@@ -20,9 +25,26 @@ export default function QuickCheckScreen() {
   const [clb, setClb] = useState("9");
   const [years, setYears] = useState("3");
   const [education, setEducation] = useState<FswEducationKey>("bachelor");
+  const [showHelp, setShowHelp] = useState(false);
 
+    const [displayName, setDisplayName] = React.useState<string | null>(null);
 
-
+function getGreeting(now = new Date()) {
+  const h = now.getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+useFocusEffect(
+  useCallback(() => {
+    let mounted = true;
+    (async () => {
+      const saved = (await getName())?.trim() || null;
+      if (mounted) setDisplayName(saved);
+    })();
+    return () => { mounted = false; };
+  }, [])
+);
 
   const [arranged, setArranged] = useState(false);
 
@@ -55,8 +77,29 @@ export default function QuickCheckScreen() {
   };
 
   return (
-    <View style={styles.wrap}>
-      <Text style={styles.h1}>QuickCheck (FSW-67)</Text>
+  <ScrollView
+    style={{ backgroundColor: "#fff" }}
+    contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+  >
+        {/* Welcome header card with inline link */}
+    <WelcomeHeader>
+      <TouchableOpacity
+  onPress={() => setShowHelp(true)}
+  activeOpacity={0.7}
+  accessibilityRole="link"
+  style={{ alignSelf: "flex-start" }}
+>
+  <Text style={styles.link}>How MapleSteps works</Text>
+</TouchableOpacity>
+
+    </WelcomeHeader>
+
+
+          <Text style={styles.h1}>Eligibility check</Text>
+    <Text style={{ color: "#6B7280", marginTop: 2, marginBottom: 6, fontSize: 12 }}>
+      Based on Federal Skilled Worker (FSW-67) pass mark
+    </Text>
+
       <RulesBadge />
       <NocBadge />
       <View style={styles.row}>
@@ -110,9 +153,48 @@ export default function QuickCheckScreen() {
     <Text style={styles.disclaimer}>Educational tool — not legal advice. See Score tab for full breakdown.</Text>
   </View>
 )}
-
+    {/* How-it-works modal */}
+    <Modal visible={showHelp} transparent={false} animationType="slide" onRequestClose={() => setShowHelp(false)}>
+  <View style={{ flex: 1, backgroundColor: "#fff" }}>
+    <View style={{ paddingHorizontal: 16, paddingTop: 18, paddingBottom: 8 }}>
+      <Text style={{ fontSize: 18, fontWeight: "700", color: "#271111ff" }}>How MapleSteps Works</Text>
+      <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
+        Your digital immigration consultant — plan your PR with confidence.
+      </Text>
     </View>
-  );
+
+    <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
+      <Text style={{ color: "#111827", lineHeight: 20 }}>
+        MapleSteps guides you through Canadian permanent residence step by step:
+        {"\n"}1) Verify your NOC (National Occupation Classification) and job duties with ESDC.
+        {"\n"}2) Get your ECA (Educational Credential Assessment) from WES / IQAS / ICES.
+        {"\n"}3) Plan language tests — IELTS or CELPIP (English), TEF or TCF (French) — and target CLB (Canadian Language Benchmark) levels.
+        {"\n"}4) Gather work evidence and Proof of Funds with checklists.
+        {"\n"}5) Create your Express Entry profile and track CRS (Comprehensive Ranking System) and category-based draws.
+        {"\n"}6) Explore PNP (Provincial Nominee Program) options where you qualify.
+        {"\n"}7) After ITA (Invitation to Apply): follow the e-APR (electronic Application for Permanent Residence) checklist to submit.
+        {"\n"}8) Track post-submission → medicals → PR confirmation portal → landing, then use province-specific post-landing checklists.
+        {"\n"}{"\n"}⭐ <Text style={{ fontWeight: "700" }}>Plan screen</Text>: this is your main guide. It shows your next best step, required documents, due dates, and links to forms. Mark items done and the plan updates automatically.
+        {"\n"}{"\n"}🔎 Data sources: wherever possible, we fetch fees, draw schedules, document lists and NOC info from official Government of Canada and provincial sites, show freshness, and cache for offline use.
+      </Text>
+    </ScrollView>
+
+    <View style={{ paddingHorizontal: 16, paddingBottom: 20 }}>
+      <Pressable
+        onPress={() => setShowHelp(false)}
+        style={{ alignSelf: "flex-end", paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, backgroundColor: "#6b1010" }}
+      >
+        <Text style={{ color: "#fff", fontWeight: "700" }}>Got it</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
+
+
+
+      </ScrollView>
+);
+
 }
 
 const styles = StyleSheet.create({
@@ -126,5 +208,7 @@ const styles = StyleSheet.create({
   card: { marginTop: 12, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: "#eee", backgroundColor: "#fafafa" },
   cardTitle: { fontSize: 16, fontWeight: "700", marginBottom: 4 },
   cardMeta: { color: "#666" },
-  disclaimer: { color: "#666", marginTop: 6, fontSize: 12 }
+  disclaimer: { color: "#666", marginTop: 6, fontSize: 12 },
+  link: { color: "#f24242ff", textDecorationLine: "underline", fontSize: 14 },
+
 });

@@ -41,3 +41,33 @@ android/app/debug.keystore
 *.zip
 
 S5-02_typecheck.txt
+# --- OS/Editor ---
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+
+# --- Dependencies & Expo caches ---
+node_modules/
+.expo/
+.expo-shared/
+
+# --- Android build outputs & noise ---
+android/app/build/
+android/build/
+android/android/
+android/*.log
+android/build.log
+android/buildlog.txt
+android/replay_*.log
+android/hs_err_*.log
+android/app.json
+
+# --- Android signing (keep locally, never commit) ---
+android/keystore.properties
+android/release.keystore
+*.keystore
+*.jks
+
+# --- iOS (if present) ---
+ios/build/

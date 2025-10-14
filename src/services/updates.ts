@@ -4,6 +4,12 @@ import { RULES_CONFIG } from "./config";
 import localRounds from "../data/rounds.json";
 import localFees from "../data/fees.json";
 
+import Constants from 'expo-constants';
+
+// Skip remote fetches when running in Expo Go or in dev.
+// We'll use cache → local, and NEVER throw in these modes.
+const SKIP_REMOTE_IN_DEV = Constants.appOwnership === 'expo' || __DEV__;
+
 
 // ----- A4: Shared loader contract -----
 export type Source = "remote" | "cache" | "local";
@@ -472,11 +478,6 @@ export async function loadFees(): Promise<LoaderResult<Fee[]>> {
     }
     // fall through
   }
-
-
-
-
-
 // 2) Cache
   try {
     const cached = await readCache<Fee[]>(FEES_CACHE_KEY);
