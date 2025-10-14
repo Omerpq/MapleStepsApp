@@ -158,7 +158,7 @@ export default function WelcomeTimeCard(_: Props) {
           colors={["transparent", "rgba(255,255,255,0.28)", "transparent"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={StyleSheet.absoluteFill}
+          style={StyleSheet.absoluteFillObject}
         />
       </Animated.View>
 
