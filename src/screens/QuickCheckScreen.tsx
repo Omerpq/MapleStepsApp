@@ -21,12 +21,36 @@ import { getName } from '../services/profile';
 
 import WelcomeTimeCard from "../components/WelcomeTimeCard";
 
+// [onboarding] imports — Step 2
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import HowItWorksSheet from '../components/onboarding/HowItWorksSheet';
+import { useNavigation } from '@react-navigation/native'; 
+
+
 export default function QuickCheckScreen() {
   const [age, setAge] = useState("29");
   const [clb, setClb] = useState("9");
   const [years, setYears] = useState("3");
   const [education, setEducation] = useState<FswEducationKey>("bachelor");
   const [showHelp, setShowHelp] = useState(false);
+// [onboarding] nav + state + effect — Step 2.A
+
+const navigation = useNavigation<any>();
+
+const [showOnboarding, setShowOnboarding] = useState(false);
+
+useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    try {
+      const seen = await AsyncStorage.getItem('ms.onboarding.v1.seen');
+      if (!seen && !cancelled) setShowOnboarding(true);
+    } catch {
+      // ignore
+    }
+  })();
+  return () => { cancelled = true; };
+}, []);
 
     const [displayName, setDisplayName] = React.useState<string | null>(null);
 
@@ -77,7 +101,24 @@ useFocusEffect(
     setResult({ classification: r.classification, total: r.total, passMark: r.passMark });
   };
 
-  return (
+return (
+  <>
+    {/* [onboarding] first-launch sheet — Step 2.B */}
+{showOnboarding && (
+  <HowItWorksSheet
+    onStart={async () => {
+  await AsyncStorage.setItem('ms.onboarding.v1.seen', '1');
+  setShowOnboarding(false);
+  navigation.navigate('ActionPlan'); 
+}}
+
+    onSkip={async () => {
+      await AsyncStorage.setItem('ms.onboarding.v1.seen', '1');
+      setShowOnboarding(false);
+    }}
+  />
+)}
+
   <ScrollView
     style={{ backgroundColor: "#fff" }}
     contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
@@ -192,7 +233,8 @@ useFocusEffect(
 
 
 
-      </ScrollView>
+        </ScrollView>
+  </>
 );
 
 }

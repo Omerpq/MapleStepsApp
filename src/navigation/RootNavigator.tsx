@@ -46,12 +46,35 @@ import { Image } from "react-native";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+// [coach] imports — Step 3.A
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, Pressable } from 'react-native';
+
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 // Keep your existing tabs exactly as-is
 function Tabs() {
+  // [coach] state & effect — Step 3.B
+const [showPlanCoach, setShowPlanCoach] = React.useState(false);
+
+React.useEffect(() => {
+  let cancelled = false;
+  (async () => {
+    try {
+      const done = await AsyncStorage.getItem('ms.onboarding.v1.planCoach');
+      if (!done && !cancelled) setShowPlanCoach(true);
+    } catch {
+      // ignore
+    }
+  })();
+  return () => { cancelled = true; };
+}, []);
+
   return (
+  <>
+
     <Tab.Navigator
       screenOptions={{
         headerShown: true,
@@ -147,8 +170,33 @@ headerLeft: () => (
   }}
 />
     </Tab.Navigator>
-  );
+    {/* [coach] Plan tab tip — Step 3.C */}
+    {showPlanCoach && (
+      <Pressable
+        accessibilityRole="button"
+        onPress={async () => {
+          await AsyncStorage.setItem('ms.onboarding.v1.planCoach', '1');
+          setShowPlanCoach(false);
+        }}
+        style={{
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: 84,      // sits just above the tab bar
+          zIndex: 9999,
+        }}
+      >
+        <View style={{ backgroundColor: '#111', padding: 10, borderRadius: 8 }}>
+          <Text style={{ color: '#fff', textAlign: 'center' }}>
+            Start here. We’ll guide you.
+          </Text>
+        </View>
+      </Pressable>
+        )}
+  </>
+);
 }
+
 
 
 export default function RootNavigator() {
