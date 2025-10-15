@@ -102,29 +102,18 @@ async function showNocCacheDev() {
 }
 
 export default function EEProfileChecklist() {
-  // S4-01 — Add a gated "Start e-APR" header button
-React.useLayoutEffect(() => {
-  // `navigation` is available via screen props; if your signature is (props), destructure or use props.navigation
-  // Most of your screens already have `navigation` in scope.
-  // @ts-ignore - tolerate any typing difference here
-  const nav: any = (typeof navigation !== "undefined" ? navigation : undefined);
-  if (!nav || !nav.setOptions) return;
 
-  nav.setOptions({
-    headerRight: () => (
-      <Pressable
-        onPress={() => gateToEAPR(nav, "EAPRBuilder")}
-        style={{ paddingHorizontal: 12, paddingVertical: 6 }}
-        accessibilityRole="button"
-        accessibilityLabel="Start e-APR"
-      >
-        <Text style={{ fontWeight: "600" }}>Start e-APR</Text>
-      </Pressable>
-    ),
-  });
-}, [/* keep navigation stable */]);
 
   const navigation = useNavigation<any>();
+  // Hide the header title beside the back arrow and remove any headerRight action
+React.useLayoutEffect(() => {
+  navigation.setOptions({
+    headerTitle: "",
+    headerBackTitleVisible: false,
+    headerRight: undefined,
+  });
+}, [navigation]);
+
   const [loading, setLoading] = useState(true);
   const [checks, setChecks] = useState<EECheck[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -171,6 +160,15 @@ React.useLayoutEffect(() => {
     }
     return { errors, warns, oks, infos };
   }, [checks]);
+// Enable Start e-APR only when all four gates are OK
+const eaprReady = useMemo(() => {
+  const needed = new Set(["eca_selected", "language_booked", "pof_adequate", "noc_verified"]);
+  const byId = new Map(checks.map(c => [c.id, c.severity]));
+  for (const k of needed) {
+    if (byId.get(k) !== "ok") return false;
+  }
+  return true;
+}, [checks]);
 
   const onFix = useCallback(async (item: EECheck) => {
     if (!item.fix) return;
@@ -193,6 +191,26 @@ React.useLayoutEffect(() => {
           <Pill label={`${counts.oks} OK`} tone="ok" />
           <Pill label={`${counts.infos} info`} />
         </View>
+{/* Big Start e-APR button — always visible; disabled until all 4 checks are OK */}
+<View style={{ marginTop: 12 }}>
+  <Pressable
+    onPress={() => gateToEAPR(navigation, "EAPRBuilder")}
+    disabled={!eaprReady}
+    accessibilityRole="button"
+    accessibilityLabel="Start your electronic Application for Permanent Residence"
+    style={{
+      backgroundColor: eaprReady ? "#B00020" : "#94A3B8", // red when enabled; gray when disabled
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      alignItems: "center",
+    }}
+  >
+    <Text style={{ fontSize: 18, fontWeight: "700", color: "#fff" }}>
+      Start e-APR (electronic Application for Permanent Residence)
+    </Text>
+  </Pressable>
+</View>
 
         {/* Success state — show only when no errors/warnings */}
         {counts.errors === 0 && counts.warns === 0 && (
