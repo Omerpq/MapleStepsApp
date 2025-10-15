@@ -385,13 +385,13 @@ if (mat.kind === "native") {
   ListHeaderComponent={
     <View style={{ marginBottom: 0 }}>
       <Section title="Your Vault">
-        <Text style={{ color: "#374151", marginBottom: 10 }}>
+        <Text style={{ color: "#374151", fontSize: 14, fontWeight: "400", marginBottom: 10 }}>
           Store your PR documents securely on this device. Files are encrypted at rest.
         </Text>
         <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
           <Pill text={`${list.length} item${list.length === 1 ? "" : "s"}`} />
         </View>
-        <Text style={{ color: "#6B7280", marginTop: 8, fontSize: 12 }}>
+        <Text style={{ color: "#6B7280", marginTop: 8, fontSize: 12, fontWeight: "400" }}>
           Export bundles all files as JSON. Delete wipes files and the master key.
         </Text>
       </Section>
@@ -407,8 +407,10 @@ if (mat.kind === "native") {
 
   {/* Show hint only when open and empty */}
   {filesOpen && list.length === 0 && (
-    <Text style={{ color: "#6B7280", marginTop: 4 }}>No files yet. Tap “Import file”.</Text>
-  )}
+   <Text style={{ color: "#6B7280", fontSize: 14, fontWeight: "400", marginTop: 4 }}>
+     No files yet. Tap “Import file”.
+   </Text>
+ )}
 </View>
 
     </View>
@@ -427,7 +429,9 @@ if (mat.kind === "native") {
     </Text>
 
        <Text style={{ color: "#6B7280", fontSize: 12 }}>
-  {Math.round((item.size ?? 0) / 1024)} KB • added {item.createdAtISO?.slice(0, 10)}
+  <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: "400" }}>
+   {Math.round((item.size ?? 0) / 1024)} KB • added {item.createdAtISO?.slice(0, 10)}
+ </Text>
 </Text>
 
 
