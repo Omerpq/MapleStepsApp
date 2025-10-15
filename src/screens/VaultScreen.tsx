@@ -404,7 +404,7 @@ if (mat.kind === "native") {
     style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 }}
   >
     <Text style={{ fontSize: 20, fontWeight: "700" }}>Your files</Text>
-    <Text style={{ fontSize: 20, fontWeight: "700" }}>{filesOpen ? "▾" : "▸"}</Text>
+    <Text style={{ fontSize: 22, fontWeight: "800" }}>{filesOpen ? "▾" : "▸"}</Text>
   </Pressable>
 
   {/* Show hint only when open and empty */}
