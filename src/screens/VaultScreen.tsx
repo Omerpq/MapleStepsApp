@@ -31,12 +31,14 @@ import { importFromWebFile } from "../services/vault";
 
 
 // ---- local tiny UI helpers (self-contained) ----
-function Section(props: { title: string; children: React.ReactNode; titleSize?: number; titleWeight?: "600" | "700" | "800" }) {
+function Section(props: { title?: string; children: React.ReactNode; titleSize?: number; titleWeight?: "600" | "700" | "800" }) {
   return (
     <View style={{ paddingTop: 0, paddingBottom: 8 }}>
-      <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 8 }}>
-        {props.title}
-      </Text>
+      {props.title ? (
+        <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 8 }}>
+          {props.title}
+        </Text>
+      ) : null}
       {props.children}
     </View>
   );
@@ -522,8 +524,7 @@ if (mat.kind === "native") {
     </View>
   )}
   ListFooterComponent={
-    <View style={{ marginTop: 8 }}>
-      <Section title="Actions">
+<View style={{ marginTop: 12 }}>      <Section>
         {/* Import */}
         <Pressable
           onPress={onImport}
