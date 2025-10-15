@@ -22,12 +22,23 @@ import {
   StyleSheet,
 } from "react-native";
 
+import { useNavigation } from "@react-navigation/native";
+
 
 type Source = "remote" | "cache" | "local";
 
 type HttpStatus = 200 | 304;
 
 export default function PNPMapper() {
+    const navigation = useNavigation<any>();
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: "",
+      headerBackTitleVisible: false,
+      headerRight: undefined,
+    });
+  }, [navigation]);
+
   // loader state
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<Source>("local");
