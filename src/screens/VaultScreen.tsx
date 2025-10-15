@@ -31,7 +31,7 @@ import { importFromWebFile } from "../services/vault";
 
 
 // ---- local tiny UI helpers (self-contained) ----
-function Section(props: { title: string; children: React.ReactNode }) {
+function Section(props: { title: string; children: React.ReactNode; titleSize?: number; titleWeight?: "600" | "700" | "800" }) {
   return (
     <View style={{ paddingTop: 0, paddingBottom: 8 }}>
       <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 8 }}>
@@ -384,8 +384,8 @@ if (mat.kind === "native") {
   ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: "#E5E7EB" }} />}
   ListHeaderComponent={
     <View style={{ marginBottom: 0 }}>
-      <Section title="Your Vault">
-        <Text style={{ color: "#374151", fontSize: 14, fontWeight: "400", marginBottom: 10 }}>
+<Section title="Your Vault" titleSize={24}>
+          <Text style={{ color: "#374151", fontSize: 14, fontWeight: "400", marginBottom: 10 }}>
           Store your PR documents securely on this device. Files are encrypted at rest.
         </Text>
         <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
@@ -399,10 +399,10 @@ if (mat.kind === "native") {
     <View style={{ paddingTop: 0, paddingBottom: 8 }}>
   <Pressable
     onPress={() => setFilesOpen((v) => !v)}
-    style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+    style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8 }}
   >
-    <Text style={{ fontSize: 22, fontWeight: "700" }}>Your files</Text>
-    <Text style={{ fontSize: 18, fontWeight: "700" }}>{filesOpen ? "▾" : "▸"}</Text>
+    <Text style={{ fontSize: 20, fontWeight: "700" }}>Your files</Text>
+    <Text style={{ fontSize: 20, fontWeight: "700" }}>{filesOpen ? "▾" : "▸"}</Text>
   </Pressable>
 
   {/* Show hint only when open and empty */}
@@ -455,7 +455,7 @@ if (mat.kind === "native") {
       pressed && !busy && { opacity: 0.85 },
     ]}
   >
-    <Text style={{ fontWeight: "800" }}>
+    <Text style={{ fontSize: 18, fontWeight: "700" }}>
       {Platform.OS === "web" ? "Open / Download" : "Open / Share"}
     </Text>
   </Pressable>
@@ -496,7 +496,7 @@ if (mat.kind === "native") {
       pressed && !busy && { opacity: 0.85 },
     ]}
   >
-    <Text style={{ fontWeight: "800" }}>
+    <Text style={{ fontSize: 18, fontWeight: "700" }}>
       {Platform.OS === "web" ? "Download copy" : "Save a copy"}
     </Text>
   </Pressable>
@@ -515,7 +515,7 @@ if (mat.kind === "native") {
       opacity: busy ? 0.6 : 1,
     }}
   >
-    <Text style={{ fontWeight: "800", color: "#FFFFFF" }}>Delete</Text>
+    <Text style={{ fontSize: 18, fontWeight: "700", color: "#FFFFFF" }}>Delete</Text>
   </Pressable>
 </View>
 
@@ -542,8 +542,7 @@ if (mat.kind === "native") {
             pressed && !busy && { opacity: 0.85 },
           ]}
         >
-          <Text style={{ fontWeight: "800" }}>Import file</Text>
-        </Pressable>
+<Text style={{ fontSize: 18, fontWeight: "700" }}>Import file</Text>        </Pressable>
 
         {/* Export */}
         <Pressable
@@ -563,7 +562,7 @@ if (mat.kind === "native") {
             pressed && !busy && { opacity: 0.85 },
           ]}
         >
-          <Text style={{ fontWeight: "800" }}>Export all (JSON)</Text>
+          <Text style={{ fontSize: 18, fontWeight: "700" }}>Export all (JSON)</Text>
         </Pressable>
 
         {/* Delete all */}
@@ -581,7 +580,7 @@ if (mat.kind === "native") {
             opacity: busy ? 0.6 : 1,
           }}
         >
-          <Text style={{ fontWeight: "800", color: "#FFFFFF" }}>Delete my data</Text>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: "#FFFFFF" }}>Delete my data</Text>
         </Pressable>
       </Section>
     </View>
