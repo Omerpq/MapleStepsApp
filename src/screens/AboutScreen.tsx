@@ -27,9 +27,9 @@ return (
 {showHowItWorks && (
   <HowItWorksSheet
     onStart={() => {
-      setShowHowItWorks(false);
-      navigation.navigate('ActionPlan'); // your confirmed Plan tab name
-    }}
+    setShowHowItWorks(false);
+    navigation.navigate('MainTabs', { screen: 'ActionPlan' });
+  }}
     onSkip={() => setShowHowItWorks(false)}
   />
 )}
