@@ -32,6 +32,7 @@ import { clearEaprCaches, forceEaprRevalidate } from "../services/eapr";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { useNavigation } from "@react-navigation/native";
 
 
 
@@ -140,6 +141,15 @@ const isCompactSection = (section: { id: string; docs: any[] }) => section.docs.
 
 
 export default function EAPRBuilder() {
+  const navigation = useNavigation<any>();
+React.useLayoutEffect(() => {
+  navigation.setOptions({
+    headerTitle: "",
+    headerBackTitleVisible: false,
+    headerRight: undefined,
+  });
+}, [navigation]);
+
   // >>> S4-02 LABEL BLOCK — START
   type EaprGuidesMeta = {
     status?: number;          // 200 or 304 (from our A4 loader)
@@ -341,7 +351,8 @@ async function healCorruptEaprKeys() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
 <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: Platform.OS === "ios" ? 140 : 120 }}>
-        <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 4 }}>e-APR Document Pack</Text>
+        <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 4 }}>e-APR Document Pack Builder</Text>
+
         <Text style={{ color: "#666", marginBottom: 12 }}>{metaLabel}</Text>
         {/* DEV — QA chips */}
 {__DEV__ && (
