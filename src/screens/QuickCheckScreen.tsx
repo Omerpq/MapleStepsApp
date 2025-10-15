@@ -25,6 +25,7 @@ import WelcomeTimeCard from "../components/WelcomeTimeCard";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HowItWorksSheet from '../components/onboarding/HowItWorksSheet';
 import { useNavigation } from '@react-navigation/native'; 
+import { trackEvent } from '../services/analytics';
 
 
 export default function QuickCheckScreen() {
@@ -44,7 +45,11 @@ useEffect(() => {
   (async () => {
     try {
       const seen = await AsyncStorage.getItem('ms.onboarding.v1.seen');
-      if (!seen && !cancelled) setShowOnboarding(true);
+      if (!seen && !cancelled) {
+  setShowOnboarding(true);
+  trackEvent('onboarding_shown');
+}
+
     } catch {
       // ignore
     }
@@ -107,15 +112,18 @@ return (
 {showOnboarding && (
   <HowItWorksSheet
     onStart={async () => {
+  trackEvent('onboarding_start_clicked');
   await AsyncStorage.setItem('ms.onboarding.v1.seen', '1');
   setShowOnboarding(false);
-  navigation.navigate('ActionPlan'); 
+  navigation.navigate('ActionPlan');
 }}
 
-    onSkip={async () => {
-      await AsyncStorage.setItem('ms.onboarding.v1.seen', '1');
-      setShowOnboarding(false);
-    }}
+onSkip={async () => {
+  trackEvent('onboarding_skipped');
+  await AsyncStorage.setItem('ms.onboarding.v1.seen', '1');
+  setShowOnboarding(false);
+}}
+
   />
 )}
 
@@ -205,29 +213,57 @@ return (
     </View>
 
     <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
+  <View style={{ gap: 10 }}>
+    <View style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: "#eee" }}>
+      <Text style={{ fontWeight: "700", marginBottom: 4 }}>1) Start in Plan</Text>
       <Text style={{ color: "#111827", lineHeight: 20 }}>
-        MapleSteps guides you through Canadian permanent residence step by step:
-        {"\n"}1) Verify your NOC (National Occupation Classification) and job duties with ESDC.
-        {"\n"}2) Get your ECA (Educational Credential Assessment) from WES / IQAS / ICES.
-        {"\n"}3) Plan language tests — IELTS or CELPIP (English), TEF or TCF (French) — and target CLB (Canadian Language Benchmark) levels.
-        {"\n"}4) Gather work evidence and Proof of Funds with checklists.
-        {"\n"}5) Create your Express Entry profile and track CRS (Comprehensive Ranking System) and category-based draws.
-        {"\n"}6) Explore PNP (Provincial Nominee Program) options where you qualify.
-        {"\n"}7) After ITA (Invitation to Apply): follow the e-APR (electronic Application for Permanent Residence) checklist to submit.
-        {"\n"}8) Track post-submission → medicals → PR confirmation portal → landing, then use province-specific post-landing checklists.
-        {"\n"}{"\n"}⭐ <Text style={{ fontWeight: "700" }}>Plan screen</Text>: this is your main guide. It shows your next best step, required documents, due dates, and links to forms. Mark items done and the plan updates automatically.
-        {"\n"}{"\n"}🔎 Data sources: wherever possible, we fetch fees, draw schedules, document lists and NOC info from official Government of Canada and provincial sites, show freshness, and cache for offline use.
+        Your “What’s next” lives here. It opens the right screen.
       </Text>
-    </ScrollView>
-
-    <View style={{ paddingHorizontal: 16, paddingBottom: 20 }}>
-      <Pressable
-        onPress={() => setShowHelp(false)}
-        style={{ alignSelf: "flex-end", paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, backgroundColor: "#6b1010" }}
-      >
-        <Text style={{ color: "#fff", fontWeight: "700" }}>Got it</Text>
-      </Pressable>
     </View>
+    <View style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: "#eee" }}>
+      <Text style={{ fontWeight: "700", marginBottom: 4 }}>2) Verify NOC → Book tests & ECA</Text>
+      <Text style={{ color: "#111827", lineHeight: 20 }}>
+        Your CLB/ECA update your scores automatically.
+      </Text>
+    </View>
+    <View style={{ padding: 12, borderRadius: 10, borderWidth: 1, borderColor: "#eee" }}>
+      <Text style={{ fontWeight: "700", marginBottom: 4 }}>3) Check Eligibility & Score</Text>
+      <Text style={{ color: "#111827", lineHeight: 20 }}>
+        When green-lit, we’ll unlock e-APR.
+      </Text>
+    </View>
+
+    <Text style={{ color: "#6B7280", fontSize: 12 }}>
+      Data sources: we fetch fees, draws, NOC and checklists from official sites and show freshness.
+    </Text>
+  </View>
+</ScrollView>
+
+
+    <View style={{ paddingHorizontal: 16, paddingBottom: 20, gap: 8 }}>
+  <Pressable
+    onPress={() => {
+      setShowHelp(false);
+      // @ts-ignore
+      navigation.navigate('ActionPlan'); // uses your confirmed Plan tab name
+    }}
+    style={{ alignSelf: "stretch", paddingVertical: 12, borderRadius: 8, backgroundColor: "#6b1010" }}
+  >
+    <Text style={{ color: "#fff", fontWeight: "700", textAlign: "center" }}>
+      Open Plan
+    </Text>
+  </Pressable>
+
+  <Pressable
+    onPress={() => setShowHelp(false)}
+    style={{ alignSelf: "stretch", paddingVertical: 10, borderRadius: 8, backgroundColor: "#eee" }}
+  >
+    <Text style={{ color: "#111", fontWeight: "700", textAlign: "center" }}>
+      Close
+    </Text>
+  </Pressable>
+</View>
+
   </View>
 </Modal>
 

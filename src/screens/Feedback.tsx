@@ -4,6 +4,9 @@ import { View, Text, TextInput, ScrollView, Pressable, Alert, Switch, KeyboardAv
 import { colors } from "../theme/colors";
 import type { FeedbackCategory, FeedbackForm } from "../services/feedback";
 import { submitFeedback, collectDiagnostics } from "../services/feedback";
+import { useNavigation } from '@react-navigation/native';
+
+import { trackEvent } from '../services/analytics';
 
 const CATEGORIES: { id: FeedbackCategory; label: string }[] = [
   { id: "bug", label: "Bug" },
@@ -14,6 +17,8 @@ const CATEGORIES: { id: FeedbackCategory; label: string }[] = [
 ];
 
 export default function Feedback() {
+  const navigation = useNavigation<any>();
+
   const [category, setCategory] = useState<FeedbackCategory>("bug");
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
@@ -71,6 +76,51 @@ export default function Feedback() {
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: 16, backgroundColor: colors.background }}>
         <Text style={{ fontSize: 22, fontWeight: "700", color: colors.text, marginBottom: 12 }}>Help & Feedback</Text>
+        {/* [capabilities] What MapleSteps can do — compact card */}
+<View style={{
+  borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 12, backgroundColor: "#FFFFFF",
+  padding: 16, marginBottom: 16
+}}>
+
+  <Text style={{ fontWeight: "700", color: colors.text, marginBottom: 6 }}>
+    What MapleSteps can do
+  </Text>
+<View style={{ gap: 8 }}>
+<Text style={{ color: colors.text, lineHeight: 20 }}>
+    • Step-by-step plan from your job category (NOC) to final application (e-APR).
+  </Text>
+<Text style={{ color: colors.text, lineHeight: 20 }}>
+    • Clear “What’s next” tasks on the Plan screen with links to the right forms and pages.
+  </Text>
+<Text style={{ color: colors.text, lineHeight: 20 }}>
+    • Live official info: fees, Proof of Funds, and draw updates — with a freshness label.
+  </Text>
+<Text style={{ color: colors.text, lineHeight: 20 }}>
+    • Understand your eligibility and scores: Federal Skilled Worker (FSW-67) and CRS.
+  </Text>
+<Text style={{ color: colors.text, lineHeight: 20 }}>
+    • Provincial options (PNP): see programs that fit you and open the official page.
+  </Text>
+<Text style={{ color: colors.text, lineHeight: 20 }}>
+    • Keep documents safe: on-device encrypted Vault (nothing uploaded by the app).
+  </Text>
+</View>
+
+
+  {/* Open Plan CTA */}
+ <Pressable
+  onPress={() => {
+  trackEvent('help_capabilities_open_plan_clicked');
+  navigation.navigate('ActionPlan');
+}}
+
+  style={{ marginTop: 10, alignSelf: "stretch", paddingVertical: 14, borderRadius: 10, backgroundColor: "#6b1010" }}
+  accessibilityRole="button"
+>
+
+    <Text style={{ color: "#fff", fontWeight: "700", textAlign: "center" }}>Open Plan</Text>
+  </Pressable>
+</View>
 
         {/* Category chips */}
         <Text style={{ color: colors.text, fontWeight: "600", marginBottom: 8 }}>Type</Text>

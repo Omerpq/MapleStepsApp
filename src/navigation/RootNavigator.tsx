@@ -50,12 +50,18 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, Pressable } from 'react-native';
 
+import { useNavigation } from '@react-navigation/native';
+
+import { trackEvent } from '../services/analytics';
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 // Keep your existing tabs exactly as-is
 function Tabs() {
+  const navigation = useNavigation<any>();
+
   // [coach] state & effect — Step 3.B
 const [showPlanCoach, setShowPlanCoach] = React.useState(false);
 
@@ -64,7 +70,11 @@ React.useEffect(() => {
   (async () => {
     try {
       const done = await AsyncStorage.getItem('ms.onboarding.v1.planCoach');
-      if (!done && !cancelled) setShowPlanCoach(true);
+      if (!done && !cancelled) {
+  setShowPlanCoach(true);
+  trackEvent('plan_coach_shown');
+}
+
     } catch {
       // ignore
     }
@@ -175,9 +185,13 @@ headerLeft: () => (
       <Pressable
         accessibilityRole="button"
         onPress={async () => {
-          await AsyncStorage.setItem('ms.onboarding.v1.planCoach', '1');
-          setShowPlanCoach(false);
-        }}
+  trackEvent('plan_coach_tapped');
+  await AsyncStorage.setItem('ms.onboarding.v1.planCoach', '1');
+  setShowPlanCoach(false);
+  navigation.navigate('ActionPlan');
+}}
+
+
         style={{
           position: 'absolute',
           left: 16,
@@ -188,11 +202,14 @@ headerLeft: () => (
       >
         <View style={{ backgroundColor: '#111', padding: 10, borderRadius: 8 }}>
           <Text style={{ color: '#fff', textAlign: 'center' }}>
-            Start here. We’ll guide you.
+            Tap to open Plan. Start here.
+
           </Text>
         </View>
       </Pressable>
         )}
+        
+
   </>
 );
 }

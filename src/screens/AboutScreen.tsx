@@ -2,6 +2,9 @@ import React from "react";
 import { ScrollView, View, Text, Image, Linking, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
+import HowItWorksSheet from '../components/onboarding/HowItWorksSheet';
+
+
 function LinkRow({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={{ paddingVertical: 12 }} accessibilityRole="button">
@@ -11,16 +14,44 @@ function LinkRow({ label, onPress }: { label: string; onPress: () => void }) {
 }
 
 export default function AboutScreen() {
+  
   const navigation = useNavigation<any>(); // <-- add
   // If you inject app version via Constants.manifest?.version, feel free to replace this.
+  const [showHowItWorks, setShowHowItWorks] = React.useState(false);
+
   const version = "1.0.1";
 
-  return (
+return (
+  <>
+  {/* [how-it-works] sheet */}
+{showHowItWorks && (
+  <HowItWorksSheet
+    onStart={() => {
+      setShowHowItWorks(false);
+      navigation.navigate('ActionPlan'); // your confirmed Plan tab name
+    }}
+    onSkip={() => setShowHowItWorks(false)}
+  />
+)}
+
     <ScrollView style={{ backgroundColor: "#fff" }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
       <View style={{ marginBottom: 6 }}>
         <Text style={{ fontSize: 18, fontWeight: "600", color: "#111827", marginBottom: 6 }}>About MapleSteps</Text>
         <Text style={{ color: "#6B7280" }}>Version {version}</Text>
       </View>
+{/* [how-it-works] quick access */}
+<View style={{ marginTop: 8, marginBottom: 12 }}>
+  <TouchableOpacity
+    onPress={() => setShowHowItWorks(true)}
+    activeOpacity={0.7}
+    style={{ paddingVertical: 12, borderRadius: 10, backgroundColor: '#6b1010' }}
+    accessibilityRole="button"
+  >
+    <Text style={{ color: '#fff', fontWeight: '700', textAlign: 'center' }}>
+      How MapleSteps works
+    </Text>
+  </TouchableOpacity>
+</View>
 
       <View style={{ borderTopWidth: 1, borderTopColor: "#E5E7EB", marginTop: 16, paddingTop: 12 }}>
         <LinkRow label="Privacy Policy" onPress={() => navigation.navigate("Policy")} />
@@ -53,5 +84,6 @@ export default function AboutScreen() {
         </Text>
       </View>
     </ScrollView>
-  );
+      </>
+);
 }
