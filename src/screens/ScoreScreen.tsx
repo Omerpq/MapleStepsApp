@@ -630,8 +630,8 @@ education,
     alignItems: "center",
   }}
 >
-  <Text style={{ fontSize: 15, fontWeight: "800", color: "#FFFFFF" }}>
-    EE Profile Checklist
+  <Text style={{ fontSize: 18, fontWeight: "700", color: "#FFFFFF" }}>
+    Express Entry Profile Checklist
   </Text>
 </Pressable>
 
