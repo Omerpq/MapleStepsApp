@@ -34,7 +34,7 @@ import { importFromWebFile } from "../services/vault";
 function Section(props: { title: string; children: React.ReactNode }) {
   return (
     <View style={{ paddingTop: 0, paddingBottom: 8 }}>
-      <Text style={{ fontSize: 22, fontWeight: "800", marginBottom: 8 }}>
+      <Text style={{ fontSize: 22, fontWeight: "700", marginBottom: 8 }}>
         {props.title}
       </Text>
       {props.children}
@@ -401,8 +401,8 @@ if (mat.kind === "native") {
     onPress={() => setFilesOpen((v) => !v)}
     style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
   >
-    <Text style={{ fontSize: 22, fontWeight: "800" }}>Your files</Text>
-    <Text style={{ fontSize: 18, fontWeight: "800" }}>{filesOpen ? "▾" : "▸"}</Text>
+    <Text style={{ fontSize: 22, fontWeight: "700" }}>Your files</Text>
+    <Text style={{ fontSize: 18, fontWeight: "700" }}>{filesOpen ? "▾" : "▸"}</Text>
   </Pressable>
 
   {/* Show hint only when open and empty */}
