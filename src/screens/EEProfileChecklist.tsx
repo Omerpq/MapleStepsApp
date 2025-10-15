@@ -180,9 +180,10 @@ const eaprReady = useMemo(() => {
       {/* Header */}
       <View style={{ paddingTop: 16, paddingHorizontal: 16, paddingBottom: 8 }}>
         <Pressable onLongPress={() => setShowDebug(v => !v)}>
-          <Text style={{ color: colors.text, fontSize: 22, fontWeight: "800", marginBottom: 8 }}>
-            EE Profile — Pre-flight Checklist
-          </Text>
+          <Text style={{ color: colors.text, fontSize: 22, fontWeight: "700", marginBottom: 8 }}>
+  Express Entry — Pre-flight Checklist
+</Text>
+
         </Pressable>
 
         <View style={{ flexDirection: "row", gap: 8 }}>
