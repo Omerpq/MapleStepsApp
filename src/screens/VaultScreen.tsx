@@ -430,10 +430,9 @@ if (mat.kind === "native") {
      {item.name}
     </Text>
 
-       <Text style={{ color: "#6B7280", fontSize: 12 }}>
-  <Text style={{ color: "#6B7280", fontSize: 12, fontWeight: "400" }}>
-   {Math.round((item.size ?? 0) / 1024)} KB • added {item.createdAtISO?.slice(0, 10)}
- </Text>
+       {/* filepath: c:\Users\omer9\MapleStepsApp\src\screens\VaultScreen.tsx (inside renderItem)*/}
+<Text style={{ color: "#6B7280", fontSize: 12, fontWeight: "400" }}>
+  {Math.round((item.size ?? 0) / 1024)} KB • added {item.createdAtISO?.slice(0, 10)}
 </Text>
 
 
@@ -524,68 +523,65 @@ if (mat.kind === "native") {
     </View>
   )}
   ListFooterComponent={
-<View style={{ marginTop: 12 }}>      <Section>
-        {/* Import */}
-        <Pressable
-          onPress={onImport}
-          disabled={busy}
-          style={({ pressed }) => [
-            {
-              marginBottom: 10,
-              paddingVertical: 14,
-              borderRadius: 14,
-              borderWidth: 1,
-              borderColor: "#111827",
-              backgroundColor: "#FFFFFF",
-              alignItems: "center",
-              opacity: busy ? 0.6 : 1,
-            },
-            pressed && !busy && { opacity: 0.85 },
-          ]}
-        >
-<Text style={{ fontSize: 18, fontWeight: "700" }}>Import file</Text>        </Pressable>
-
-        {/* Export */}
-        <Pressable
-          onPress={onExport}
-          disabled={busy}
-          style={({ pressed }) => [
-            {
-              marginBottom: 10,
-              paddingVertical: 14,
-              borderRadius: 14,
-              borderWidth: 1,
-              borderColor: "#111827",
-              backgroundColor: "#FFFFFF",
-              alignItems: "center",
-              opacity: busy ? 0.6 : 1,
-            },
-            pressed && !busy && { opacity: 0.85 },
-          ]}
-        >
-          <Text style={{ fontSize: 18, fontWeight: "700" }}>Export all (JSON)</Text>
-        </Pressable>
-
-        {/* Delete all */}
-        <Pressable
-          onPress={onDeleteAll}
-          disabled={busy}
-          style={{
+  <View style={{ marginTop: 12 }}>
+    <Section>
+      <Pressable
+        onPress={onImport}
+        disabled={busy}
+        style={({ pressed }) => [
+          {
             marginBottom: 10,
             paddingVertical: 14,
             borderRadius: 14,
-            backgroundColor: "#B91C1C",
             borderWidth: 1,
-            borderColor: "#991B1B",
+            borderColor: "#111827",
+            backgroundColor: "#FFFFFF",
             alignItems: "center",
             opacity: busy ? 0.6 : 1,
-          }}
-        >
-          <Text style={{ fontSize: 18, fontWeight: "700", color: "#FFFFFF" }}>Delete my data</Text>
-        </Pressable>
-      </Section>
-    </View>
-  }
+          },
+          pressed && !busy && { opacity: 0.85 },
+        ]}
+      >
+        <Text style={{ fontSize: 18, fontWeight: "700" }}>Import file</Text>
+      </Pressable>{/* Import */}
+      <Pressable
+        onPress={onExport}
+        disabled={busy}
+        style={({ pressed }) => [
+          {
+            marginBottom: 10,
+            paddingVertical: 14,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: "#111827",
+            backgroundColor: "#FFFFFF",
+            alignItems: "center",
+            opacity: busy ? 0.6 : 1,
+          },
+          pressed && !busy && { opacity: 0.85 },
+        ]}
+      >
+        <Text style={{ fontSize: 18, fontWeight: "700" }}>Export all (JSON)</Text>
+      </Pressable>{/* Export */}
+      <Pressable
+        onPress={onDeleteAll}
+        disabled={busy}
+        style={{
+          marginBottom: 10,
+          paddingVertical: 14,
+          borderRadius: 14,
+          backgroundColor: "#B91C1C",
+          borderWidth: 1,
+          borderColor: "#991B1B",
+          alignItems: "center",
+          opacity: busy ? 0.6 : 1,
+        }}
+      >
+        <Text style={{ fontSize: 18, fontWeight: "700", color: "#FFFFFF" }}>Delete my data</Text>
+      </Pressable>{/* Delete all */}
+    </Section>
+  </View>
+}
 />
       {busy && (
         <View

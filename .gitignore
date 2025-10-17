@@ -80,3 +80,4 @@ ios/build/
 
 # local scripts you don't want in repo
 patch-*.cjs
+src/navigation/RootNavigatorMESSED.tsx

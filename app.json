@@ -1,66 +1,66 @@
 {
-    "expo":  {
-                 "name":  "maplesteps",
-                 "slug":  "maplesteps",
-                 "version":  "1.0.1",
-                 "orientation":  "portrait",
-                 "icon":  "./assets/icon.png",
-                 "userInterfaceStyle":  "light",
-                 "splash":  {
-                                "image":  "./assets/splash/parliament-clean-1500x3000.png",
-                                "resizeMode":  "cover",
-                                "backgroundColor":  "#0B1220",
-                                "dark":  {
-                                             "image":  "./assets/splash/parliament-clean-1500x3000.png",
-                                             "backgroundColor":  "#0B1220"
-                                         }
-                            },
-                 "scheme":  "maplesteps",
-                 "plugins":  [
-                                 "expo-notifications",
-                                 "expo-secure-store"
-                             ],
-                 "ios":  {
-                             "supportsTablet":  true,
-                             "bundleIdentifier":  "com.omerpq.maplesteps",
-                             "buildNumber":  "1",
-                             "infoPlist":  {
-                                               "UIBackgroundModes":  [
-                                                                         "fetch"
-                                                                     ]
-                                           }
-                         },
-                 "android":  {
-                                 "adaptiveIcon":  {
-                                                      "foregroundImage":  "./assets/adaptive-icon.png",
-                                                      "backgroundColor":  "#ffffff"
-                                                  },
-                                 "edgeToEdgeEnabled":  true,
-                                 "package":  "com.omerpq.maplesteps.release",
-                                 "versionCode":  2,
-                                 "intentFilters":  [
-                                                       {
-                                                           "action":  "VIEW",
-                                                           "category":  [
-                                                                            "BROWSABLE",
-                                                                            "DEFAULT"
-                                                                        ],
-                                                           "data":  [
-                                                                        {
-                                                                            "scheme":  "maplesteps"
-                                                                        }
-                                                                    ]
-                                                       }
-                                                   ]
-                             },
-                 "web":  {
-                             "bundler":  "metro",
-                             "favicon":  "./assets/favicon.png"
-                         },
-                 "extra":  {
-                               "eas":  {
-                                           "projectId":  "0c522a76-c73f-4d0e-9b6a-1540e95bbf03"
-                                       }
-                           }
-             }
+    "expo": {
+        "name": "maplesteps",
+        "slug": "maplesteps",
+        "version": "1.0.1",
+        "orientation": "portrait",
+        "icon": "./assets/icon.png",
+        "userInterfaceStyle": "light",
+        "splash": {
+            "image": "./assets/splash/parliament-clean-1500x3000.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#ffffff",
+            "dark": {
+                "image": "./assets/splash/parliament-clean-1500x3000.png",
+                "backgroundColor": "#ffffff"
+            }
+        },
+        "scheme": "maplesteps",
+        "plugins": [
+            "expo-notifications",
+            "expo-secure-store"
+        ],
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.omerpq.maplesteps",
+            "buildNumber": "1",
+            "infoPlist": {
+                "UIBackgroundModes": [
+                    "fetch"
+                ]
+            }
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon.png",
+                "backgroundColor": "#ffffff"
+            },
+            "edgeToEdgeEnabled": true,
+            "package": "com.omerpq.maplesteps.release",
+            "versionCode": 2,
+            "intentFilters": [
+                {
+                    "action": "VIEW",
+                    "category": [
+                        "BROWSABLE",
+                        "DEFAULT"
+                    ],
+                    "data": [
+                        {
+                            "scheme": "maplesteps"
+                        }
+                    ]
+                }
+            ]
+        },
+        "web": {
+            "bundler": "metro",
+            "favicon": "./assets/favicon.png"
+        },
+        "extra": {
+            "eas": {
+                "projectId": "0c522a76-c73f-4d0e-9b6a-1540e95bbf03"
+            }
+        }
+    }
 }
